@@ -1,5 +1,5 @@
 (function (global) {
-  // Point d'entrée : orchestre les écrans (accueil, joueurs, partie) et
+  // Point d'entrée : orchestre les écrans (accueil, joueurs, règles, partie) et
   // installe le filet de sécurité en cas d'erreur imprévue. Aucune donnée
   // patient n'est jamais persistée ; seule la préférence de son l'est.
   var doc = global.document, racine = doc.getElementById("racine");
@@ -25,13 +25,29 @@
   function accueil() {
     detruirePartieActive();
     veille.relacher();
-    global.EcranAccueil.afficher(racine, { plateaux: global.PLATEAUX, surChoix: joueurs });
+    global.EcranAccueil.afficher(racine, { plateaux: global.PLATEAUX, surChoix: joueurs, surRegles: regles });
+  }
+
+  // Règles consultées depuis l'accueil : pas de partie à enchaîner, seul le
+  // retour est proposé.
+  function regles() {
+    detruirePartieActive();
+    veille.relacher();
+    global.EcranRegles.afficher(racine, { surRetour: accueil });
   }
 
   function joueurs(plateau) {
     detruirePartieActive();
     global.EcranJoueurs.afficher(racine, { plateau: plateau, surRetour: accueil,
-      surCommencer: function (liste) { partie(plateau, liste); } });
+      surCommencer: function (liste) { reglesAvantPartie(plateau, liste); } });
+  }
+
+  // Règles affichées juste avant l'échauffement (première phase de l'écran de
+  // partie) : les deux boutons mènent à la partie, le retour n'a pas de sens
+  // ici (revenir en arrière perdrait la saisie des joueurs).
+  function reglesAvantPartie(plateau, liste) {
+    detruirePartieActive();
+    global.EcranRegles.afficher(racine, { surSuite: function () { partie(plateau, liste); } });
   }
 
   function partie(plateau, liste) {

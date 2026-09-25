@@ -181,7 +181,8 @@
     return e;
   }
 
-  var Validation = { chaine: chaine, evenements: evenements, plateau: plateau, INDICES_FILTRES: INDICES_FILTRES };
+  var Validation = { chaine: chaine, evenements: evenements, plateau: plateau,
+    INDICES_FILTRES: INDICES_FILTRES, TYPES_CASES: TYPES_CASES };
   if (typeof module !== "undefined" && module.exports) module.exports = Validation;
   else global.Validation = Validation;
 })(typeof globalThis !== "undefined" ? globalThis : this);

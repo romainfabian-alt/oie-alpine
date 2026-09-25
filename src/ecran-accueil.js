@@ -35,6 +35,13 @@
       ICONES_ZONES[id] + "</g></svg>");
   }
 
+  function icoRegles() {
+    return depuisHTML('<svg class="picto" width="22" height="22" viewBox="0 0 12 12" aria-hidden="true">' +
+      '<g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">' +
+      '<rect x="2.2" y="1.4" width="7.6" height="9.2" rx="1"/><line x1="4" y1="4" x2="8" y2="4"/>' +
+      '<line x1="4" y1="6" x2="8" y2="6"/><line x1="4" y1="8" x2="6.6" y2="8"/></g></svg>');
+  }
+
   function crete() {
     return depuisHTML('<svg class="crete" viewBox="0 0 300 40" aria-hidden="true">' +
       '<polyline points="0,38 60,24 92,31 150,4 186,20 214,12 300,38"/><line x1="150" y1="4" x2="150" y2="-6"/></svg>');
@@ -100,7 +107,14 @@
             global.document.createTextNode("Alpine")]),
           crete(),
           UI.el("p", { classe: "accroche", texte: "De 2 100 m à la Grande Motte, 3 656 m. Un plateau, un dé, et chacun grimpe à son niveau." }),
-          UI.el("nav", { classe: "zones" }, zonesDisponibles.map(tuileZone))
+          // Le bouton des règles vit dans la même colonne que les tuiles de
+          // zone (et non après le <nav>) pour rester collé sous la dernière
+          // tuile : les tuiles sont plafonnées en hauteur, et l'espace libre
+          // de la colonne doit retomber sous le bouton, pas au-dessus.
+          UI.el("nav", { classe: "zones" }, zonesDisponibles.map(tuileZone).concat([
+            o.surRegles ? boutonNu("lien-regles", o.surRegles,
+              [icoRegles(), global.document.createTextNode("Règles du jeu")]) : null
+          ]))
         ])
       ]);
       if (zoneChoisie) {

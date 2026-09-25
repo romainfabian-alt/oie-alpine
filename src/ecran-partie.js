@@ -293,18 +293,28 @@
       var enfants = [];
       if (dernier && dernier.tour === p.tour) {
         var j = p.joueurs[dernier.r.joueur];
-        enfants.push(UI.el("div", { classe: "lancer-de" }, [de(dernier.r.de, 132)]));
+        // Le résultat s'affiche aussi en gros chiffre à côté de la face, pour
+        // être lu à 2 m. L'animation (CSS seule) ne joue qu'une fois par
+        // lancer : le drapeau est consommé ici, un simple redessin (son,
+        // fenêtre de choix) ne la rejoue pas. Rien n'attend l'animation et
+        // l'état affiché est déjà le bon si elle ne tourne pas.
+        var anime = dernier.anime;
+        dernier.anime = false;
+        enfants.push(UI.el("div", { classe: "lancer-de" + (anime ? " lancer-de-anime" : "") }, [
+          de(dernier.r.de, 96),
+          UI.el("span", { classe: "de-nombre", texte: String(dernier.r.de) })
+        ]));
         var effet = dernier.effet;
         var sautOuFlocon = dernier.r.effets.length ? dernier.r.effets[0].type : null;
         enfants.push(UI.el("div", { classe: "lancer-texte" }, [
           UI.el("p", { classe: "lancer-sur", texte: "Dernier lancer" }),
-          UI.el("p", { classe: "lancer-res" }, [UI.el("b", { style: "color:" + j.couleur, texte: j.prenom }), doc.createTextNode(" a fait " + dernier.r.de)]),
+          UI.el("p", { classe: "lancer-res" }, [UI.el("b", { style: "color:" + j.couleur, texte: j.prenom }), doc.createTextNode(" a fait\u00a0" + dernier.r.de)]),
           effet ? UI.el("p", { classe: "lancer-effet" }, [
             RP.ICONES[sautOuFlocon] ? picto(RP.ICONES[sautOuFlocon], 22) : null, doc.createTextNode(effet)]) : null
         ]));
       } else {
         var bloques = p.joueurs.filter(function (k) { return k.rang === null && k.passeCrevasse; });
-        enfants.push(UI.el("div", { classe: "lancer-de" }, [de(6, 132)]));
+        enfants.push(UI.el("div", { classe: "lancer-de lancer-de-attente" }, [de(6, 96)]));
         enfants.push(UI.el("div", { classe: "lancer-texte" }, [
           UI.el("p", { classe: "lancer-sur", texte: "Tour " + p.tour }),
           UI.el("p", { classe: "lancer-res", texte: p.tour === 1 ? "En route" : "Nouveau tour" }),
@@ -319,7 +329,7 @@
           agir(function () {
             if (Regles.joueurActif(p) !== actif) return;       // état changé entre-temps
             var r = Regles.lancer(p);
-            dernier = { tour: p.tour, r: r, effet: insecable(texteEffet(p, r)) };
+            dernier = { tour: p.tour, r: r, effet: insecable(texteEffet(p, r)), anime: true };
           }, true);
         }, [de(6, 40), doc.createTextNode("Lancer le dé")]));
       }
@@ -343,7 +353,7 @@
       var gauche, lanceur = p.attente ? p.joueurs[p.attente.joueur] : null;
       if (lanceur && dernier && dernier.tour === p.tour && dernier.r.joueur === lanceur.id) {
         gauche = [pastille(lanceur, 40), UI.el("h2", { classe: "titre-tour" }, [
-          UI.el("b", { style: "color:" + lanceur.couleur, texte: lanceur.prenom }), doc.createTextNode(" a fait " + dernier.r.de)])];
+          UI.el("b", { style: "color:" + lanceur.couleur, texte: lanceur.prenom }), doc.createTextNode(" a fait\u00a0" + dernier.r.de)])];
       } else if (lanceur) {
         gauche = [pastille(lanceur, 40), UI.el("h2", { classe: "titre-tour" }, [doc.createTextNode("À "),
           UI.el("b", { style: "color:" + lanceur.couleur, texte: lanceur.prenom }), doc.createTextNode(" de choisir")])];
@@ -433,7 +443,12 @@
       var anneau = depuisHTML('<svg class="minuteur-anneau" viewBox="0 0 52 52" width="52" height="52"><circle cx="26" cy="26" r="22" class="fond"/>' +
         '<circle cx="26" cy="26" r="22" class="reste" stroke-dasharray="' + CIRCONFERENCE + " " + CIRCONFERENCE + '" transform="rotate(-90 26 26)"/></svg>');
       var temps = UI.el("span", { classe: "minuteur-temps" });
-      var bloc = UI.el("div", { classe: "minuteur" }, [anneau, temps]);
+      // « 1 min 30 s » en gros chiffres remplit à lui seul une colonne de
+      // quatre joueurs : dans ce cas l'anneau, décoratif, s'efface au profit
+      // des chiffres (cf. .minuteur-long en CSS). « 30 s » ou « 1 min »
+      // laissent la place et gardent l'anneau.
+      var classeBloc = "minuteur" + (F.duree(c.secondes).length > 6 ? " minuteur-long" : "");
+      var bloc = UI.el("div", { classe: classeBloc }, [anneau, temps]);
       var bouton = UI.bouton("", function () {
         son.debloquer();
         var t = Date.now();
@@ -449,7 +464,7 @@
         }
         temps.textContent = insecable(F.duree(reste));
         anneau.lastChild.setAttribute("stroke-dasharray", (CIRCONFERENCE * reste / c.secondes).toFixed(1) + " " + CIRCONFERENCE);
-        bloc.className = "minuteur" + (e.m.enMarche ? " en-cours" : "");
+        bloc.className = classeBloc + (e.m.enMarche ? " en-cours" : "");
         bouton.textContent = e.m.enMarche ? "Pause" : reste === 0 ? "Encore" : reste === c.secondes ? "Démarrer" : "Reprendre";
       };
       e.maj();
@@ -651,12 +666,29 @@
     }
 
     // Carte trop remplie (description longue, charge, minuteur, objectif et
-    // piolet) : typographie plus compacte plutôt qu'un bouton rogné en bas.
+    // piolet) : c'est la description, lue de près avant de commencer, qui se
+    // resserre. Le dosage, le nom de l'exercice, le prénom et les boutons
+    // gardent leur taille, ils doivent rester lisibles à 2 m. La description
+    // est le seul bloc à pouvoir se réduire (voir .carte-description en CSS) :
+    // si elle déborde encore une fois resserrée, elle défile dans la carte.
     function resserrer() {
       [].forEach.call(racine.querySelectorAll(".carte"), function (a) {
-        var corps = a.querySelector(".carte-corps");
-        if (corps && corps.scrollHeight > corps.clientHeight + 1) a.className += " carte-serree";
+        if (a.className.indexOf("carte-serree") !== -1) return;
+        var d = a.querySelector(".carte-description");
+        if (d && d.scrollHeight > d.clientHeight + 1) a.className += " carte-serree";
       });
+    }
+
+    // Les polices peuvent arriver après le premier tracé : la mesure faite
+    // avant leur chargement sous-estime la hauteur du texte et la carte
+    // resterait large alors qu'elle déborde. On refait la mesure une fois les
+    // polices prêtes, sur les cartes encore à l'écran.
+    function resserrerApresPolices() {
+      if (!doc.fonts || !doc.fonts.ready || !doc.fonts.ready.then) return;
+      doc.fonts.ready.then(function () {
+        if (quitte || p.phase !== "effort") return;
+        resserrer();
+      })["catch"](function () {});
     }
 
     function dessiner() {
@@ -675,7 +707,7 @@
           : p.phase === "lancer" ? ecranLancer()
           : p.phase === "effort" ? ecranEffort() : ecranPodium();
         racine.appendChild(corps);
-        if (p.phase === "effort") resserrer();
+        if (p.phase === "effort") { resserrer(); resserrerApresPolices(); }
         if (p.phase === "lancer" && p.attente) demanderChoix();
       } catch (e) {
         if (global.console) global.console.error(e);

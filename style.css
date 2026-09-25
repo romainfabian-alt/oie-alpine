@@ -39,14 +39,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .bouton:active { transform: scale(.97); }
 .bouton-discret { border-color: var(--filet); background: transparent; }
 .bouton-principal { background: var(--sapin); border-color: var(--sapin); color: var(--ivoire); box-shadow: 0 3px 0 #1D2C24; }
-.bouton-large { min-height: 72px; padding: 0 44px; font-size: 26px; }
+.bouton-large { min-height: 72px; padding: 0 44px; font-size: 30px; }
 .bouton-carre { width: 60px; height: 60px; padding: 0; font-size: 34px; font-weight: 600; }
 
 .pastille-joueur { --taille: 28px; display: inline-block; flex: none; width: var(--taille); height: var(--taille); border-radius: 50%;
   background: var(--joueur); box-shadow: 0 0 0 3px var(--ivoire), 0 0 0 4.5px var(--joueur); }
 
 .surtitre { font-size: 15px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--cuivre); }
-.sous-titre { font-size: 18px; color: var(--cacao-doux); line-height: 1.35; }
+.sous-titre { font-size: 22px; color: var(--cacao-doux); line-height: 1.35; }
 .insecable { white-space: nowrap; }
 
 /* ---------------------------------------------------------------- vue 1 : accueil */
@@ -132,7 +132,36 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 .coeur { position: absolute; display: flex; align-items: center; gap: 28px; padding: 0 30px; border-radius: 18px;
   background: var(--ivoire); border: 1px solid var(--cuivre); box-shadow: inset 0 0 0 5px var(--ivoire), inset 0 0 0 6px rgba(176,125,79,.35); }
+.lancer-de { flex: none; display: flex; align-items: center; gap: 16px; }
 .lancer-de .de { display: block; filter: drop-shadow(0 4px 6px rgba(58,46,34,.25)); transform: rotate(-6deg); }
+/* Le résultat en gros chiffre : c'est lui qu'on lit à 2 m, la face aux points
+   reste là pour la forme. */
+.de-nombre { font-weight: 600; font-size: 96px; line-height: .9; letter-spacing: -0.03em;
+  font-variant-numeric: lining-nums tabular-nums; color: var(--cuivre); }
+.lancer-de-attente .de { opacity: .5; }
+/* Le dé roule environ 640 ms puis se pose, le chiffre apparaît à la fin.
+   Tout est en CSS : le moteur n'attend rien, le bouton du joueur suivant
+   reste utilisable, et l'état final ne dépend pas de l'animation. */
+@keyframes de-roule {
+  0%   { transform: rotate(-6deg) scale(1); }
+  14%  { transform: rotate(-64deg) scale(.86); }
+  30%  { transform: rotate(46deg) scale(1.07); }
+  46%  { transform: rotate(-32deg) scale(.93); }
+  62%  { transform: rotate(20deg) scale(1.05); }
+  80%  { transform: rotate(-11deg) scale(.98); }
+  100% { transform: rotate(-6deg) scale(1); }
+}
+@keyframes de-chiffre {
+  0%   { opacity: 0; transform: scale(.35); }
+  55%  { opacity: 0; transform: scale(.35); }
+  78%  { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.lancer-de-anime .de { animation: de-roule 640ms cubic-bezier(.24,.72,.34,1) both; }
+.lancer-de-anime .de-nombre { animation: de-chiffre 640ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .lancer-de-anime .de, .lancer-de-anime .de-nombre { animation: none; }
+}
 .lancer-texte { flex: 1; min-width: 0; }
 .lancer-sur { font-size: 14px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--cuivre); }
 .lancer-res { font-family: "Italiana", serif; font-size: 44px; line-height: 1.1; margin-top: 2px; }
@@ -168,37 +197,59 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .choix-difficile .choix-titre { color: #7A5230; }
 
 /* ---------------------------------------------------------------- vue 5 : cartes d'effort */
-.cartes { flex: 1; display: grid; gap: 12px; padding: 14px 16px 16px; min-height: 0; }
+/* Lisibilité à 2 m (iPad de 250 mm de large pour 1180 px : 1 px vaut 0,21 mm).
+   Deux échelles héritées par la carte selon le nombre de colonnes :
+   --ech pour l'information clé lue de loin (dosage, nom de l'exercice, prénom),
+   --ech2, plus douce, pour ce qui doit rester compact (boutons, minuteur,
+   matériel, description). À 4 joueurs les colonnes font environ 280 px : les
+   tailles de base sont donc les minima demandés, et tout grandit à 1 ou 2. */
+/* Une seule rangée, qui prend toute la hauteur disponible : sans cela la
+   rangée se dimensionne sur le contenu et la description, seul bloc à pouvoir
+   rétrécir, se retrouve écrasée alors qu'il restait de la place. */
+.cartes { flex: 1; display: grid; grid-auto-rows: minmax(0, 1fr); gap: 12px; padding: 14px 16px 16px; min-height: 0; --ech: 1; --ech2: 1; }
 .cartes-4 { grid-template-columns: repeat(4, 1fr); }
 .carte { display: flex; flex-direction: column; min-height: 0; border-radius: 18px; overflow: hidden; background: var(--papier);
   border: 2px solid var(--joueur); box-shadow: 0 4px 0 color-mix(in srgb, var(--joueur) 35%, transparent); }
-.carte-entete { height: 58px; flex: none; background: var(--joueur); color: var(--joueur-texte); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
-.carte-prenom { font-weight: 600; font-size: 28px; }
-.carte-niveau { font-weight: 600; font-size: 16px; padding: 4px 10px; border-radius: 20px; background: rgba(255,255,255,.22); }
-.carte-corps { flex: 1; display: flex; flex-direction: column; padding: 12px 14px 14px; min-height: 0; }
-.carte-type { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--sapin); }
+/* Un prénom long (« Anne-Charlotte ») garde ses 28 px : c'est le niveau qui
+   passe à la ligne, jamais le prénom qui rétrécit ou se coupe en plein milieu. */
+.carte-entete { min-height: calc(56px * var(--ech2)); flex: none; background: var(--joueur); color: var(--joueur-texte);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; padding: 5px 16px; }
+.carte-prenom { font-weight: 600; font-size: calc(28px * var(--ech)); line-height: 1.1; min-width: 0; overflow-wrap: break-word; }
+.carte-niveau { flex: none; font-weight: 600; font-size: calc(18px * var(--ech2)); padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,.22); white-space: nowrap; }
+/* Corps : tout est à taille fixe sauf la description, seule à se resserrer
+   puis à défiler. Le dosage, le nom et les boutons ne cèdent jamais. */
+.carte-corps { flex: 1; display: flex; flex-direction: column; padding: 10px 14px 12px; min-height: 0; overflow: hidden; }
+.carte-corps > * { flex: none; }
+.carte-type { display: flex; align-items: center; gap: 7px; font-size: calc(14px * var(--ech2)); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--sapin); }
 .puce-exo { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--cuivre); margin: 0 4px; }
-.carte-titre { font-weight: 600; font-size: 24px; line-height: 1.12; margin-top: 6px; }
-.carte-description { font-size: 16px; line-height: 1.32; margin-top: 8px; }
-.carte-materiel { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--cacao-doux); margin-top: 8px; }
-.carte-bas { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 8px; }
-.carte-dosage { font-weight: 600; font-size: 64px; line-height: 1; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 8px; }
-.carte-dosage small { font-size: 26px; }
-.carte-dosage-texte { font-size: 24px; line-height: 1.15; letter-spacing: 0; color: var(--cacao); }
-.carte-charge { font-size: 15px; font-weight: 600; color: #7A5230; background: #F6EBDD; border-left: 4px solid var(--cuivre); padding: 6px 10px; border-radius: 4px; line-height: 1.25; }
-.minuteur { display: flex; align-items: center; gap: 8px; height: 68px; padding: 0 4px 0 6px; border-radius: 14px; background: var(--ivoire); }
+.carte-titre { font-weight: 600; font-size: calc(32px * var(--ech)); line-height: 1.1; margin-top: 6px; }
+.carte-description { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  font-size: calc(18px * var(--ech2)); line-height: 1.3; margin-top: 8px; }
+.carte-materiel { display: flex; align-items: center; gap: 8px; font-size: calc(20px * var(--ech2)); font-weight: 600; color: var(--cacao-doux); margin-top: 8px; }
+.carte-bas { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 10px; }
+.carte-dosage { font-weight: 600; font-size: calc(64px * var(--ech)); line-height: 1; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 10px; }
+.carte-dosage small { font-size: calc(30px * var(--ech2)); font-weight: 600; }
+.carte-dosage-texte { font-size: calc(30px * var(--ech)); line-height: 1.15; letter-spacing: 0; color: var(--cacao); }
+.carte-charge { font-size: calc(16px * var(--ech2)); font-weight: 600; color: #7A5230; background: #F6EBDD; border-left: 4px solid var(--cuivre); padding: 6px 10px; border-radius: 4px; line-height: 1.25; }
+/* Minuteur : les chiffres passent avant l'anneau. Seul un temps long
+   (« 1 min 30 s ») dans une colonne de quatre joueurs oblige à effacer
+   l'anneau ; partout ailleurs il reste. Le bouton passe à la ligne si besoin. */
+.minuteur { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; min-height: calc(66px * var(--ech2));
+  padding: 4px 4px 4px 6px; border-radius: 14px; background: var(--ivoire); }
+.minuteur-anneau { flex: none; }
+.cartes-4 .minuteur-long .minuteur-anneau { display: none; }
 .minuteur-anneau .fond { fill: none; stroke: var(--filet); stroke-width: 5; }
 .minuteur-anneau .reste { fill: none; stroke: var(--sapin); stroke-width: 5; stroke-linecap: round; }
 .en-cours .minuteur-anneau .reste { stroke: var(--joueur); }
-.minuteur-temps { font-weight: 600; font-size: 28px; white-space: nowrap; font-variant-numeric: tabular-nums; flex: 1; }
-.bouton-minuteur { min-height: 60px; padding: 0 12px; font-size: 18px; }
+.minuteur-temps { font-weight: 600; font-size: calc(48px * var(--ech2)); line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; flex: 1 1 auto; text-align: center; }
+.bouton-minuteur { flex: none; min-height: 60px; padding: 0 14px; font-size: calc(20px * var(--ech2)); }
 .carte .bouton-minuteur { min-height: 60px; }
-.carte-objectif { font-size: 17px; font-weight: 600; line-height: 1.25; color: var(--sapin); }
+.carte-objectif { font-size: calc(18px * var(--ech2)); font-weight: 600; line-height: 1.25; color: var(--sapin); }
 .carte-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.carte-actions .bouton { flex: 1; min-height: 64px; font-size: 24px; padding: 0 10px; }
+.carte-actions .bouton { flex: 1; min-height: 64px; font-size: calc(26px * var(--ech2)); padding: 0 10px; }
 .bouton-joueur { border-color: var(--joueur); color: var(--joueur); border-width: 3px; }
 .lien-piolet { flex-basis: 100%; min-height: 60px; margin-bottom: -10px; display: flex; align-items: center; justify-content: center; gap: 8px;
-  font-size: 18px; font-weight: 600; color: var(--cacao-doux); text-decoration: underline; text-underline-offset: 4px; }
+  font-size: calc(18px * var(--ech2)); font-weight: 600; color: var(--cacao-doux); text-decoration: underline; text-underline-offset: 4px; }
 
 /* ---------------------------------------------------------------- vue 6 : podium */
 .ecran-podium { align-items: center; }
@@ -213,12 +264,12 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .grimpeur { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .grimpeur i { width: var(--taille); height: var(--taille); border-radius: 50%; background: var(--joueur); color: var(--joueur-texte); display: flex; align-items: center; justify-content: center;
   font-style: normal; font-weight: 600; font-size: calc(var(--taille) * 0.46); box-shadow: 0 0 0 5px var(--ivoire), 0 6px 14px rgba(58,46,34,.3); }
-.grimpeur b { font-weight: 600; font-size: 24px; }
+.grimpeur b { font-weight: 600; font-size: 28px; }
 .podium-drapeau { position: absolute; top: -44px; left: 50%; transform: translateX(-50%); color: var(--cuivre); }
 .marche-bloc { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 14px; color: var(--ivoire); border-radius: 14px 14px 0 0; }
 .marche-rang { font-weight: 600; font-size: 64px; line-height: 1; }
 .marche-rang sup { font-size: 24px; vertical-align: top; position: relative; top: 8px; margin-left: 2px; }
-.marche-note { font-size: 17px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.marche-note { font-size: 20px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
 .marche-1 .marche-bloc { height: 250px; background: var(--cuivre); }
 .marche-2 .marche-bloc { height: 190px; background: var(--sapin); }
 .marche-4 .marche-bloc { height: 120px; background: #8A7B69; }
@@ -238,25 +289,29 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .choix-bouton.bouton-joueur { border-width: 3px; }
 .choix-bouton.bouton-joueur .choix-titre { color: var(--joueur); }
 
-.cartes-1 { grid-template-columns: minmax(0, 520px); justify-content: center; }
-.cartes-2 { grid-template-columns: repeat(2, minmax(0, 520px)); justify-content: center; }
-.cartes-3 { grid-template-columns: repeat(3, 1fr); }
-.carte-dosage-long { font-size: 44px; flex-wrap: wrap; }
+/* Moins de colonnes, donc plus de place : le dosage passe d'environ 64 px
+   (4 joueurs) à environ 83 px (1 ou 2 joueurs). */
+.cartes-1 { grid-template-columns: minmax(0, 560px); justify-content: center; --ech: 1.30; --ech2: 1.14; }
+.cartes-2 { grid-template-columns: repeat(2, minmax(0, 520px)); justify-content: center; --ech: 1.26; --ech2: 1.12; }
+.cartes-3 { grid-template-columns: repeat(3, 1fr); --ech: 1.08; --ech2: 1.04; }
+/* Dosage long (« 1 min 30 s ») : même taille que les autres, il passe
+   simplement à la ligne (« 1 min » puis « 30 s »). */
+.carte-dosage-long { flex-wrap: wrap; }
 .carte.faite { box-shadow: none; }
-.carte.faite .carte-corps > :not(.carte-bas) { opacity: .45; }
+.carte.faite .carte-corps > :not(.carte-bas) { opacity: .6; }
 .carte-bilan { min-height: 64px; display: flex; align-items: center; justify-content: center; border-radius: var(--rayon); background: var(--sapin-voile);
-  color: var(--sapin); font-weight: 600; font-size: 24px; text-align: center; padding: 0 10px; }
+  color: var(--sapin); font-weight: 600; font-size: calc(26px * var(--ech2)); text-align: center; padding: 0 10px; }
 
 .etape-bandeau { flex: none; display: flex; align-items: center; gap: 12px; margin: 14px 16px 0; padding: 10px 16px; border-radius: 12px;
-  background: var(--sapin-voile); color: var(--sapin); font-size: 19px; font-weight: 600; line-height: 1.3; }
+  background: var(--sapin-voile); color: var(--sapin); font-size: 26px; font-weight: 600; line-height: 1.3; }
 .etape-bandeau + .cartes { padding-top: 12px; }
 .etape-annulation { flex: none; margin: 10px 16px 0; padding: 8px 16px; border-radius: 12px;
-  background: rgba(176, 125, 79, 0.16); color: var(--cuivre); font-size: 17px; font-weight: 600; line-height: 1.3; }
+  background: rgba(176, 125, 79, 0.16); color: var(--cuivre); font-size: 22px; font-weight: 600; line-height: 1.3; }
 .etape-annulation + .cartes { padding-top: 12px; }
 .etape-seule { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 0 120px 40px; text-align: center; }
 .etape-picto { color: var(--sapin); }
 .etape-titre { font-family: "Italiana", serif; font-weight: 400; font-size: 88px; line-height: 1; letter-spacing: .03em; }
-.etape-texte { font-size: 28px; line-height: 1.35; max-width: 820px; margin-bottom: 18px; }
+.etape-texte { font-size: 36px; line-height: 1.3; max-width: 900px; margin-bottom: 18px; }
 .erreur-boutons { display: flex; gap: 18px; }
 
 .echauffement { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 20px 60px; }
@@ -271,15 +326,105 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .echauffement-joueur { display: flex; align-items: center; gap: 12px; font-size: 22px; }
 .echauffement-joueur b { font-weight: 600; }
 
-.podium { width: auto; }
+/* Le bouton « Nouvelle partie », plus large depuis que .bouton-large est
+   passé à 30 px, ne doit pas mordre sur la dernière marche. */
+.podium { width: auto; margin-left: 44px; }
+.podium-pied .bouton-large { padding: 0 30px; }
 .marche-3 .marche-bloc { height: 150px; background: #6E7F6E; }
 .podium-4 { margin-left: 40px; }
-.carte-serree .carte-titre { font-size: 21px; }
-.carte-serree .carte-description { font-size: 15px; line-height: 1.26; margin-top: 6px; }
+/* Carte trop remplie : seule la description (lue de près, avant de
+   commencer) se resserre, puis défile. Le dosage, le nom de l'exercice, le
+   prénom et les boutons gardent leur taille : ce sont eux qu'on lit à 2 m. */
+.carte-serree .carte-type { display: none; }
+.carte-serree .carte-description { font-size: calc(15px * var(--ech2)); line-height: 1.24; margin-top: 6px; }
+.carte-serree .carte-titre { margin-top: 2px; }
 .carte-serree .carte-materiel { margin-top: 6px; }
 .carte-serree .carte-bas { gap: 6px; padding-top: 6px; }
-.carte-serree .carte-dosage:not(.carte-dosage-texte) { font-size: 44px; }
-.carte-serree .carte-dosage-texte { font-size: 21px; }
-.carte-serree .carte-dosage small { font-size: 22px; }
-.carte-serree .minuteur { height: 62px; }
 .carte-serree .lien-piolet { margin-bottom: -12px; }
+
+/* iPad Air 13 pouces en paysage : 1366 × 1024 px CSS pour environ 262 mm de
+   large, soit 0,19 mm par pixel. La colonne de quatre joueurs passe de 274 à
+   321 px utiles et la carte de 706 à 910 px de haut : tout monte d'un cran,
+   et les cartes d'un ou deux joueurs s'élargissent au lieu de laisser des
+   marges vides. Les valeurs ci-dessus restent le plancher des iPad plus
+   petits (1180 × 820), qui doivent continuer à tenir. */
+@media (min-width: 1300px) {
+  .cartes { --ech: 1.34; --ech2: 1.12; }
+  .cartes-3 { --ech: 1.42; --ech2: 1.18; }
+  .cartes-2 { grid-template-columns: repeat(2, minmax(0, 620px)); --ech: 1.52; --ech2: 1.22; }
+  .cartes-1 { grid-template-columns: minmax(0, 660px); --ech: 1.58; --ech2: 1.24; }
+  /* Le cœur du plateau gagne lui aussi en largeur : le résultat du dé suit. */
+  .de-nombre { font-size: 124px; }
+  .lancer-de .de { width: 124px; height: 124px; }
+  /* Écrans collectifs et podium au même régime. */
+  .etape-bandeau { font-size: 30px; }
+  .etape-annulation { font-size: 25px; }
+  .etape-texte { font-size: 42px; max-width: 1040px; }
+  .bouton-large { min-height: 80px; font-size: 34px; }
+  .grimpeur b { font-size: 32px; }
+  .sous-titre { font-size: 25px; }
+}
+
+/* ---------------------------------------------------------------- vue 7 : règles du jeu */
+/* Écran lu de près (le kiné et les patients autour de l'iPad), pas à 2 m
+   comme les cartes d'effort : le texte peut donc être plus petit. Rien ne
+   doit défiler, ni la page ni les blocs : tout tient en colonnes, y compris
+   sur le plus petit iPad visé (1180 × 820). La liste des cases est une
+   grille à 7 lignes remplie colonne par colonne, et non un multi-colonnes :
+   un débordement y resterait invisible, décalé dans une 3e colonne hors
+   cadre, au lieu de se voir tout de suite. */
+.ecran-regles .regles { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.55fr 1fr 1fr;
+  gap: 14px 22px; padding: 12px 22px 2px; }
+.regles-texte { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 11px;
+  padding-right: 16px; border-right: 1px solid var(--filet); }
+.regles-cases { grid-column: span 2; min-height: 0; display: flex; flex-direction: column; }
+.regles-titre { font-weight: 600; font-size: 16px; letter-spacing: .1em; text-transform: uppercase; color: var(--sapin);
+  padding-bottom: 5px; border-bottom: 2px solid var(--cuivre); }
+.regles-points { list-style: none; margin-top: 7px; display: flex; flex-direction: column; gap: 6px; }
+.regles-points li { position: relative; padding-left: 15px; font-size: 17px; line-height: 1.28; color: var(--cacao); }
+.regles-points li::before { content: ""; position: absolute; left: 0; top: 9px; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--cuivre); }
+.cases-liste { flex: 1; min-height: 0; margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr;
+  column-gap: 22px; align-items: start; }
+.cases-colonne { list-style: none; min-height: 0; overflow-y: auto; }
+.case-ligne { display: flex; gap: 9px; padding: 3px 0 4px; }
+.case-picto { flex: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; background: var(--sapin-voile); color: var(--sapin); }
+.case-corps { min-width: 0; display: flex; flex-direction: column; }
+.case-nom { font-weight: 600; font-size: 16px; line-height: 1.15; color: var(--sapin); }
+.case-effet { font-size: 14.5px; line-height: 1.26; color: var(--cacao); margin-top: 1px; }
+.case-solo { font-size: 13.5px; line-height: 1.26; color: var(--cacao-doux); margin-top: 1px; }
+/* Pied plus bas et plus sobre que sur les autres écrans : la place gagnée va
+   au texte des règles, et les libellés ne doivent jamais passer sur deux
+   lignes sur un iPad 1180 de large. */
+.pied-regles { height: 78px; justify-content: flex-end; }
+.pied-regles .pied-note { font-size: 15px; margin-right: auto; }
+.pied-regles .pied-actions { display: flex; align-items: center; gap: 14px; }
+.bouton-suite { min-height: 60px; padding: 0 30px; font-size: 24px; white-space: nowrap; }
+
+/* Bouton discret des règles sur l'accueil, sous les tuiles de zone : même
+   habillage léger que les tuiles, sans leur poids visuel. */
+.lien-regles { flex: none; margin-top: 10px; min-height: 46px; border-radius: var(--rayon);
+  border: 2px dashed var(--filet); background: transparent; display: flex; align-items: center; justify-content: center;
+  gap: 10px; font-weight: 600; font-size: 17px; color: var(--cacao-doux); }
+.lien-regles .picto { color: var(--cuivre); }
+
+/* iPad Air 13 pouces : la place gagnée sert au confort de lecture. */
+@media (min-width: 1300px) {
+  .ecran-regles .regles { gap: 20px 30px; padding: 20px 30px 4px; }
+  .regles-texte { gap: 16px; padding-right: 24px; }
+  .regles-points li { font-size: 21px; padding-left: 18px; }
+  .regles-points li::before { top: 12px; }
+  .regles-titre { font-size: 19px; }
+  .regles-points { margin-top: 10px; gap: 8px; }
+  .cases-liste { column-gap: 30px; margin-top: 12px; }
+  .case-ligne { padding: 7px 0 8px; gap: 12px; }
+  .case-picto { width: 38px; height: 38px; }
+  .case-nom { font-size: 20px; }
+  .case-effet { font-size: 17px; }
+  .case-solo { font-size: 16px; }
+  .pied-regles { height: 96px; }
+  .pied-regles .pied-note { font-size: 17px; }
+  .bouton-suite { min-height: 76px; padding: 0 42px; font-size: 32px; }
+  .lien-regles { min-height: 54px; font-size: 19px; margin-top: 12px; }
+}

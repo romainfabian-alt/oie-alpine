@@ -28,7 +28,12 @@ hors ligne, une fois installée.
 
 Ces écrans de mise en place sont à remplir par le kiné, pas par le patient.
 
-4. L'échauffement s'affiche ensuite, guidé selon la zone choisie. Il a lieu
+4. L'écran « Règles du jeu » s'affiche ensuite : le déroulé d'un tour, le
+   piolet, les cases spéciales et la fin de partie. « Commencer
+   l'échauffement » et « Passer » mènent tous deux à la suite. Ces règles
+   restent consultables à tout moment depuis le bouton « Règles du jeu » de
+   l'écran d'accueil, sous les zones.
+5. L'échauffement s'affiche ensuite, guidé selon la zone choisie. Il a lieu
    une seule fois, tous ensemble, avant le premier lancer de dé.
 
 ### Un tour de jeu
