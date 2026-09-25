@@ -7,8 +7,11 @@
   var F = (typeof require !== "undefined") ? require("./format.js") : global.Format;
   var RP = (typeof require !== "undefined") ? require("./rendu-plateau.js") : global.RenduPlateau;
   var R = (typeof require !== "undefined") ? require("./referentiel.js") : global.Referentiel;
+  var DP = (typeof require !== "undefined") ? require("./deplacement.js") : global.Deplacement;
+  var A = (typeof require !== "undefined") ? require("./aleatoire.js") : global.Aleatoire;
 
   var JAUNE = "#E0A526";
+  var ROULE_MS = 640;                 // durée du roulé du dé, cf. « de-roule » en CSS
   var CIRCONFERENCE = 138.2;          // anneau du minuteur : 2 × π × 22
   var VERROU_MS = 500;                // un double appui ne déclenche qu'une action
 
@@ -116,6 +119,13 @@
     var UI = global.UI, doc = global.document;
     var p = o.partie, son = o.son;
     var tic = null, fermerModal = null, verrouJusqua = 0, dernier = null, quitte = false, panne = false;
+    var anim = null;                  // animation du pion en cours, cf. presentation()
+    var animDe = null;                // recherche de la face du dé pendant le roulé
+    var deNode = null, deBloc = null; // face du dé et bloc animé du cœur
+    var ligneEffet = null;            // phrase d'effet du cœur, révélée à l'arrivée
+    // Hasard de l'affichage seulement : surtout pas celui du moteur, qui
+    // tire les exercices et ne doit pas dépendre de ce qui est animé.
+    var aleaEcran = A.creer(Date.now() % 4294967296);
     var minuteurs = [];               // { carte, m, bipe } : survivent aux redessins de l'étape
 
     function depuisHTML(html) { var d = doc.createElement("div"); d.innerHTML = html; return d.firstElementChild; }
@@ -135,11 +145,31 @@
     var POINTS = { 1: [[6, 6]], 2: [[3.2, 3.2], [8.8, 8.8]], 3: [[3.2, 3.2], [6, 6], [8.8, 8.8]],
       4: [[3.2, 3.2], [8.8, 3.2], [3.2, 8.8], [8.8, 8.8]], 5: [[3.2, 3.2], [8.8, 3.2], [6, 6], [3.2, 8.8], [8.8, 8.8]],
       6: [[3.4, 3], [8.6, 3], [3.4, 6], [8.6, 6], [3.4, 9], [8.6, 9]] };
+    // Le dé porte toujours six pastilles : changer de face ne fait que
+    // déplacer celles qui servent et mettre les autres à un rayon nul. Aucun
+    // nœud n'est recréé, donc le roulé CSS en cours n'est jamais relancé.
+    function poserFace(svgDe, valeur) {
+      var v = POINTS[valeur] ? valeur : 6, pts = POINTS[v], cercles = svgDe.getElementsByTagName("circle"), i;
+      for (i = 0; i < 6; i++) {
+        if (i < pts.length) {
+          cercles[i].setAttribute("cx", pts[i][0]);
+          cercles[i].setAttribute("cy", pts[i][1]);
+          cercles[i].setAttribute("r", "1.05");
+        } else {
+          cercles[i].setAttribute("r", "0");
+        }
+      }
+      svgDe.setAttribute("aria-label", "Dé : " + v);
+    }
+
     function de(valeur, taille) {
-      var v = POINTS[valeur] ? valeur : 6;
-      return depuisHTML('<svg class="de" width="' + taille + '" height="' + taille + '" viewBox="0 0 12 12" aria-label="Dé : ' + v + '">' +
+      var pastilles = "", i;
+      for (i = 0; i < 6; i++) pastilles += '<circle cx="6" cy="6" r="0" fill="#3A2E22"/>';
+      var svgDe = depuisHTML('<svg class="de" width="' + taille + '" height="' + taille + '" viewBox="0 0 12 12">' +
         '<rect x="0.5" y="0.5" width="11" height="11" rx="2.2" fill="#FFFDF8" stroke="#3A2E22" stroke-width="0.45"/>' +
-        POINTS[v].map(function (q) { return '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="1.05" fill="#3A2E22"/>'; }).join("") + "</svg>");
+        pastilles + "</svg>");
+      poserFace(svgDe, valeur);
+      return svgDe;
     }
     function texteJoueur(j) { return String(j.couleur).toUpperCase() === JAUNE ? "#3A2E22" : "#FFFFFF"; }
     function styleJoueur(j) { return "--joueur:" + j.couleur + ";--joueur-texte:" + texteJoueur(j); }
@@ -150,6 +180,13 @@
 
     function nettoyer() {
       if (tic !== null) { global.clearInterval(tic); tic = null; }
+      // L'animation du pion est simplement suspendue : dernier.i garde l'image
+      // atteinte, et ecranLancer la reprend là où elle en était si l'écran est
+      // redessiné entre-temps (son coupé, fenêtre fermée...).
+      if (anim) { anim.arreter(); anim = null; }
+      // Le dé : le cœur est reconstruit par le redessin qui suit, avec la
+      // vraie face et sans classe d'animation, donc arrêter suffit.
+      if (animDe) { animDe.arreter(); animDe = null; }
       if (fermerModal) { fermerModal(); fermerModal = null; }
     }
 
@@ -281,6 +318,103 @@
       ]);
     }
 
+    // ---------------------------------------------------------- présentation du lancer
+
+    // Après un lancer, l'écran reste sur le plateau : le dé se lit, le pion
+    // avance case par case, puis seulement la partie continue. Trois vues :
+    //   "anime"  : le pion se déplace, aucun bouton, aucune fenêtre de choix ;
+    //   "cartes" : déplacement fini et effort commencé côté moteur, un grand
+    //              bouton fait passer aux cartes ;
+    //   null     : écran de lancer habituel (au suivant de lancer, ou choix).
+    function presentation() {
+      if (!dernier || dernier.tour !== p.tour || !dernier.vue) return null;
+      if (p.phase !== "lancer" && p.phase !== "effort") return null;   // terminé, podium
+      return dernier.vue;
+    }
+
+    function mouvementReduit() {
+      try { return !!(global.matchMedia && global.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+      catch (e) { return false; }
+    }
+
+    // La phrase d'effet n'est montrée qu'une fois le pion posé : pendant la
+    // marche, annoncer « Télécabine : montée à la case 19 » dirait l'arrivée
+    // avant qu'elle ait lieu. La place reste réservée (visibilité seulement),
+    // donc le cœur ne saute pas quand la phrase apparaît.
+    function effetVisible() {
+      if (!dernier || !dernier.images) return true;
+      return DP.effetVisible(dernier.i, dernier.images.length);
+    }
+
+    function classeEffet() { return "lancer-effet" + (effetVisible() ? "" : " lancer-effet-cache"); }
+
+    // Vue qui suit la fin d'un déplacement : bouton vers les cartes si le
+    // moteur est passé à l'effort, sinon écran de lancer habituel.
+    function vueApres() { return p.phase === "effort" ? "cartes" : null; }
+
+    function libelleCartes() {
+      var e = p.etapes && p.etapes[p.etape];
+      if (e && !e.cartes.length) return "Voir la suite";
+      return Regles.enCourse(p).length === 1 ? "Voir ma carte" : "Voir les cartes";
+    }
+
+    // Le dé roule environ 640 ms avant de se poser : le pion reste sur sa case
+    // de départ pendant ce temps, sinon la fin d'un petit déplacement
+    // redessinerait le cœur et couperait le roulé en plein vol. Répéter la
+    // première image suffit, sans minuterie supplémentaire.
+    function attendreLeDe(suite) {
+      var res = [], n = Math.round(ROULE_MS / DP.PAS_MS) - 1, i;
+      for (i = 0; i < n; i++) res.push(suite[0]);
+      return res.concat(suite);
+    }
+
+    // Le dé cherche son résultat : la face change toutes les 100 ms, sans
+    // jamais se poser sur le vrai résultat ni répéter la même valeur, puis
+    // s'arrête dessus. Rien n'en dépend : sans animation, la face montre le
+    // résultat dès le premier tracé.
+    function chercherFace() {
+      animDe = DP.animer({
+        images: DP.facesDe(dernier.r.de, DP.FACES_DE, aleaEcran), depuis: 0, pas: DP.PAS_DE_MS,
+        poser: function (fn, ms) { return global.setInterval(fn, ms); },
+        annuler: function (id) { global.clearInterval(id); },
+        rendre: function (i, face) { if (deNode) poserFace(deNode, face); },
+        fin: function () { animDe = null; }
+      });
+    }
+
+    // Appui pendant l'animation : le dé se pose sur son résultat et le gros
+    // chiffre s'affiche, les animations CSS du cœur étant retirées d'un coup.
+    function finirDe() {
+      var a = animDe;
+      animDe = null;
+      if (a) a.finir();
+      if (deNode && dernier) poserFace(deNode, dernier.r.de);
+      if (deBloc) deBloc.className = "lancer-de";
+    }
+
+    // Prépare la présentation d'une suite d'images. Mouvement réduit demandé
+    // par le système : pas d'animation, le pion est déjà à l'arrivée et le
+    // bouton s'affiche tout de suite.
+    // attendreDe : suite qui suit un lancer, le pion laisse le dé se poser.
+    function presenter(suite, attendreDe) {
+      if (attendreDe && !mouvementReduit()) suite = attendreLeDe(suite);
+      dernier.images = suite;
+      if (mouvementReduit() || suite.length < 2) {
+        dernier.i = suite.length - 1;
+        dernier.vue = vueApres();
+      } else {
+        dernier.i = 0;
+        dernier.vue = "anime";
+      }
+    }
+
+    // Fin du déplacement (dernière image atteinte, ou appui pour passer).
+    function finPresentation() {
+      if (quitte || !dernier) return;
+      dernier.vue = vueApres();
+      dessiner();
+    }
+
     // ---------------------------------------------------------- lancer
 
     function placer(bloc, g) {
@@ -291,6 +425,7 @@
 
     function coeurLancer(actif) {
       var enfants = [];
+      ligneEffet = null; deNode = null; deBloc = null;
       if (dernier && dernier.tour === p.tour) {
         var j = p.joueurs[dernier.r.joueur];
         // Le résultat s'affiche aussi en gros chiffre à côté de la face, pour
@@ -300,17 +435,23 @@
         // l'état affiché est déjà le bon si elle ne tourne pas.
         var anime = dernier.anime;
         dernier.anime = false;
-        enfants.push(UI.el("div", { classe: "lancer-de" + (anime ? " lancer-de-anime" : "") }, [
-          de(dernier.r.de, 96),
+        deNode = de(dernier.r.de, 96);
+        deBloc = UI.el("div", { classe: "lancer-de" + (anime ? " lancer-de-anime" : "") }, [
+          deNode,
           UI.el("span", { classe: "de-nombre", texte: String(dernier.r.de) })
-        ]));
+        ]);
+        enfants.push(deBloc);
+        if (anime && !mouvementReduit()) chercherFace();
         var effet = dernier.effet;
         var sautOuFlocon = dernier.r.effets.length ? dernier.r.effets[0].type : null;
+        if (effet) {
+          ligneEffet = UI.el("p", { classe: classeEffet() }, [
+            RP.ICONES[sautOuFlocon] ? picto(RP.ICONES[sautOuFlocon], 22) : null, doc.createTextNode(effet)]);
+        }
         enfants.push(UI.el("div", { classe: "lancer-texte" }, [
           UI.el("p", { classe: "lancer-sur", texte: "Dernier lancer" }),
           UI.el("p", { classe: "lancer-res" }, [UI.el("b", { style: "color:" + j.couleur, texte: j.prenom }), doc.createTextNode(" a fait\u00a0" + dernier.r.de)]),
-          effet ? UI.el("p", { classe: "lancer-effet" }, [
-            RP.ICONES[sautOuFlocon] ? picto(RP.ICONES[sautOuFlocon], 22) : null, doc.createTextNode(effet)]) : null
+          ligneEffet
         ]));
       } else {
         var bloques = p.joueurs.filter(function (k) { return k.rang === null && k.passeCrevasse; });
@@ -323,34 +464,106 @@
             : "Chacun lance à son tour, puis place à l'effort." })
         ]));
       }
-      if (actif) {
+      if (presentation() === "cartes") {
+        // Le pion est arrivé et l'effort a commencé côté moteur : les cartes
+        // n'apparaissent qu'à la demande, pour laisser voir la case atteinte.
+        enfants.push(boutonNu("bouton bouton-principal bouton-lancer bouton-continuer", function () {
+          if (!dernier) return;
+          dernier.vue = null;
+          dessiner();
+        }, [doc.createTextNode(libelleCartes())]));
+      } else if (actif) {
         enfants.push(boutonNu("bouton bouton-principal bouton-lancer", function () {
           son.debloquer();
           agir(function () {
             if (Regles.joueurActif(p) !== actif) return;       // état changé entre-temps
             var r = Regles.lancer(p);
-            dernier = { tour: p.tour, r: r, effet: insecable(texteEffet(p, r)), anime: true };
+            dernier = { tour: p.tour, r: r, effet: insecable(texteEffet(p, r)), anime: true, images: [], i: 0, vue: null };
+            presenter(DP.images(r, Regles.derniere(p)), true);
           }, true);
         }, [de(6, 40), doc.createTextNode("Lancer le dé")]));
       }
       return enfants;
     }
 
-    function listePositions() {
-      return p.joueurs.slice().sort(function (a, b) { return b.position - a.position || a.id - b.id; }).map(function (j) {
+    // joueurs : ceux de l'image courante pendant un déplacement, pour que la
+    // liste des altitudes suive le pion case par case au lieu d'afficher tout
+    // de suite celle de la case d'arrivée.
+    function listePositions(joueurs) {
+      return joueurs.slice().sort(function (a, b) { return b.position - a.position || a.id - b.id; }).map(function (j) {
         return UI.el("p", {}, [pastille(j, 18), UI.el("b", { texte: j.prenom }),
           UI.el("span", { texte: j.rang !== null ? "Sommet" : altitude(p.plateau.altitudes[j.position]) })]);
       });
     }
 
     function ecranLancer() {
-      var actif = Regles.joueurActif(p), z = zonesLibres(p.plateau.cases.length);
+      var vue = presentation();
+      // Pendant la présentation, personne ne lance : le bouton du joueur
+      // suivant n'apparaît qu'une fois le pion arrivé.
+      var actif = vue ? null : Regles.joueurActif(p), z = zonesLibres(p.plateau.cases.length);
       var cadre = UI.el("div", { classe: "plateau-cadre", style: "--colonnes:" + z.g.colonnes + ";--lignes:" + z.g.lignes });
-      cadre.innerHTML = RP.svg(p.plateau, p.joueurs, p.ctx.bib, actif ? actif.id : (p.attente ? p.attente.joueur : null));
-      if (z.coeur) cadre.appendChild(UI.el("div", { classe: "coeur", style: placer(z.coeur, z.g) }, coeurLancer(actif)));
-      if (z.liste) cadre.appendChild(UI.el("div", { classe: "cordee-liste", style: placer(z.liste, z.g) }, listePositions()));
 
-      var gauche, lanceur = p.attente ? p.joueurs[p.attente.joueur] : null;
+      // Image courante du déplacement : les pions concernés sont dessinés à la
+      // position de l'image, pas à celle du moteur (déjà à l'arrivée).
+      function imageCourante() {
+        return dernier && dernier.tour === p.tour && dernier.images && dernier.images.length
+          ? dernier.images[Math.min(dernier.i, dernier.images.length - 1)] : null;
+      }
+
+      function joueursDessines() {
+        var img = vue ? imageCourante() : null;
+        if (!img) return p.joueurs;
+        var places = {};
+        places[dernier.r.joueur] = img.position;
+        if (img.autre) places[img.autre.id] = img.autre.position;
+        return p.joueurs.map(function (j) {
+          if (places[j.id] === undefined) return j;
+          return { id: j.id, prenom: j.prenom, couleur: j.couleur, position: places[j.id], rang: j.rang };
+        });
+      }
+
+      function cercle() {
+        if (vue) return dernier.r.joueur;
+        return actif ? actif.id : (p.attente ? p.attente.joueur : null);
+      }
+
+      // Case atteinte : mise en valeur une fois le pion posé (dernière image),
+      // pour que la case se repère d'un coup d'œil à 2 m.
+      function marquerArrivee(racineSvg) {
+        var img = imageCourante();
+        if (!img || !dernier.images || dernier.i < dernier.images.length - 1) return;
+        var cases = racineSvg.querySelectorAll(".case"), c = cases[img.position];
+        if (c) c.setAttribute("class", c.getAttribute("class") + " case-arrivee");
+      }
+
+      function nouveauSvg() {
+        var n = depuisHTML(RP.svg(p.plateau, joueursDessines(), p.ctx.bib, cercle()));
+        marquerArrivee(n);
+        return n;
+      }
+
+      cadre.appendChild(nouveauSvg());
+      if (z.coeur) cadre.appendChild(UI.el("div", { classe: "coeur", style: placer(z.coeur, z.g) }, coeurLancer(actif)));
+      var liste = z.liste
+        ? UI.el("div", { classe: "cordee-liste", style: placer(z.liste, z.g) }, listePositions(joueursDessines())) : null;
+      if (liste) cadre.appendChild(liste);
+
+      // À chaque case : le plateau, la liste des altitudes et la visibilité de
+      // la phrase d'effet. Le dé, son chiffre et sa petite animation CSS ne
+      // sont pas reconstruits, ils restent intacts pendant tout le déplacement.
+      function rafraichir() {
+        var vieux = cadre.firstElementChild;
+        if (vieux) cadre.replaceChild(nouveauSvg(), vieux);
+        if (liste) {
+          UI.vider(liste);
+          listePositions(joueursDessines()).forEach(function (n) { liste.appendChild(n); });
+        }
+        if (ligneEffet) ligneEffet.className = classeEffet();
+      }
+
+      // Pendant la présentation, le bandeau annonce le résultat du lanceur,
+      // même si le moteur est déjà passé à l'effort.
+      var gauche, lanceur = p.attente ? p.joueurs[p.attente.joueur] : (vue ? p.joueurs[dernier.r.joueur] : null);
       if (lanceur && dernier && dernier.tour === p.tour && dernier.r.joueur === lanceur.id) {
         gauche = [pastille(lanceur, 40), UI.el("h2", { classe: "titre-tour" }, [
           UI.el("b", { style: "color:" + lanceur.couleur, texte: lanceur.prenom }), doc.createTextNode(" a fait\u00a0" + dernier.r.de)])];
@@ -364,9 +577,30 @@
         gauche = [UI.el("h2", { classe: "titre-ecran", texte: "Le plateau" })];
       }
       var sous = UI.el("p", { classe: "bandeau-sous" }, [doc.createTextNode(sousPlateau()), doc.createElement("br"), doc.createTextNode("Tour " + p.tour)]);
+      var zone = UI.el("main", { classe: "plateau" }, [cadre]);
+
+      if (vue === "anime" && dernier.i < dernier.images.length - 1) {
+        // Un appui n'importe où sur le plateau saute la fin du déplacement :
+        // l'animation ne retient jamais la partie.
+        zone.addEventListener("click", function () {
+          finirDe();
+          var a = anim;
+          if (!a) return;
+          anim = null;
+          a.finir();
+        });
+        anim = DP.animer({
+          images: dernier.images, depuis: dernier.i, pas: DP.PAS_MS,
+          poser: function (fn, ms) { return global.setInterval(fn, ms); },
+          annuler: function (id) { global.clearInterval(id); },
+          rendre: function (i) { dernier.i = i; rafraichir(); },
+          fin: function () { anim = null; finPresentation(); }
+        });
+      }
+
       return UI.el("section", { classe: "ecran ecran-jeu" }, [
         bandeau(gauche, [sous, boutonSon(), boutonTerminer()]),
-        UI.el("main", { classe: "plateau" }, [cadre]),
+        zone,
         // Plateau sans centre libre (aucun aujourd'hui) : le lancer reste accessible sous le plateau.
         z.coeur ? null : UI.el("div", { classe: "coeur coeur-secours" }, coeurLancer(actif))
       ]);
@@ -383,7 +617,12 @@
         repondu = agir(function () {
           if (p.attente !== a) return;
           Regles.choisir(p, valeur);
-          if (a.type === "bivouac" && dernier) dernier.effet = "Bivouac : échange de place avec " + p.joueurs[valeur].prenom + ".";
+          if (a.type === "bivouac" && dernier) {
+            dernier.effet = "Bivouac : échange de place avec " + p.joueurs[valeur].prenom + ".";
+            // Le moteur a déjà permuté les deux pions : on rejoue l'avant puis
+            // l'après pour que l'échange se voie sur le plateau.
+            presenter(DP.imagesEchange(p.joueurs[valeur].position, valeur, p.joueurs[a.joueur].position));
+          }
           if (a.type === "duel" && dernier) dernier.effet = "Duel contre " + p.joueurs[valeur].prenom + " à l'effort.";
           if (a.type === "col" && dernier) dernier.effet = valeur === "difficile" ? "Col : passage difficile, +3 cases." : "Col : passage facile, +1 case.";
         });
@@ -703,12 +942,16 @@
         return;
       }
       try {
+        // Présentation d'un lancer : l'écran reste sur le plateau même si le
+        // moteur est déjà passé à l'effort, et la fenêtre de choix (col, duel,
+        // bivouac) attend la fin du déplacement pour s'ouvrir.
+        var vue = presentation();
         var corps = p.phase === "echauffement" ? ecranEchauffement()
-          : p.phase === "lancer" ? ecranLancer()
+          : (p.phase === "lancer" || vue) ? ecranLancer()
           : p.phase === "effort" ? ecranEffort() : ecranPodium();
         racine.appendChild(corps);
-        if (p.phase === "effort") { resserrer(); resserrerApresPolices(); }
-        if (p.phase === "lancer" && p.attente) demanderChoix();
+        if (p.phase === "effort" && !vue) { resserrer(); resserrerApresPolices(); }
+        if (!vue && p.phase === "lancer" && p.attente) demanderChoix();
       } catch (e) {
         if (global.console) global.console.error(e);
         nettoyer();

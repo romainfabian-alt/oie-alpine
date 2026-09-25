@@ -127,6 +127,18 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .case-sommet .case-picto { color: var(--ivoire); }
 .case-sommet .case-lib, .case-sommet .case-alt, .case-sommet .case-num { fill: var(--ivoire); }
 .chevron { fill: none; stroke: var(--cuivre); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* Case où le pion vient de se poser : un anneau cuivre qui bat deux fois, puis
+   reste épais tant que le plateau est affiché. L'animation porte sur le rect et
+   non sur le groupe, qui porte déjà son transform de placement. Les images clés
+   partent et reviennent à l'état au repos (trait de 5) : même si l'animation ne
+   démarre pas, la case reste cerclée. */
+.case-arrivee rect { stroke: var(--cuivre); stroke-width: 5; animation: case-arrivee 700ms ease-out 2; }
+.case-arrivee .case-num, .case-arrivee .case-alt { fill: var(--cuivre); }
+@keyframes case-arrivee {
+  0%   { stroke-width: 5; }
+  45%  { stroke-width: 10; }
+  100% { stroke-width: 5; }
+}
 .pion-lettre { font-size: 18px; font-weight: 600; }
 .pion-lettre-serree { font-size: 15px; }
 
@@ -151,24 +163,37 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   80%  { transform: rotate(-11deg) scale(.98); }
   100% { transform: rotate(-6deg) scale(1); }
 }
+/* Le gros chiffre n'apparaît qu'une fois la face posée sur le vrai résultat,
+   à 78 % des 640 ms du roulé, soit les 500 ms de la recherche de face (cf.
+   PAS_DE_MS et FACES_DE dans src/deplacement.js) : sinon il annoncerait le
+   résultat pendant que le dé cherche encore. */
 @keyframes de-chiffre {
   0%   { opacity: 0; transform: scale(.35); }
-  55%  { opacity: 0; transform: scale(.35); }
-  78%  { opacity: 1; transform: scale(1.2); }
+  78%  { opacity: 0; transform: scale(.35); }
+  92%  { opacity: 1; transform: scale(1.2); }
   100% { opacity: 1; transform: scale(1); }
 }
 .lancer-de-anime .de { animation: de-roule 640ms cubic-bezier(.24,.72,.34,1) both; }
 .lancer-de-anime .de-nombre { animation: de-chiffre 640ms ease-out both; }
 @media (prefers-reduced-motion: reduce) {
   .lancer-de-anime .de, .lancer-de-anime .de-nombre { animation: none; }
+  /* Le pion est posé d'emblée à l'arrivée (cf. presenter dans ecran-partie) :
+     la case reste cerclée, sans battement. */
+  .case-arrivee rect { animation: none; }
 }
 .lancer-texte { flex: 1; min-width: 0; }
 .lancer-sur { font-size: 14px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--cuivre); }
 .lancer-res { font-family: "Italiana", serif; font-size: 44px; line-height: 1.1; margin-top: 2px; }
 .lancer-res b { font-family: "Jura", sans-serif; font-weight: 600; font-size: 36px; }
 .lancer-effet { display: flex; align-items: center; gap: 8px; font-size: 17px; color: var(--sapin); font-weight: 600; margin-top: 8px; line-height: 1.25; }
+/* Pendant que le pion marche, ce que la case déclenche n'est pas encore
+   arrivé : la phrase est masquée mais garde sa place, donc le cœur ne saute
+   pas au moment où elle apparaît. */
+.lancer-effet-cache { visibility: hidden; }
 .bouton-lancer { min-height: 96px; padding: 0 30px; font-size: 28px; gap: 14px; border-radius: 18px; }
 .bouton-lancer .de rect { fill: var(--ivoire); stroke: none; }
+/* « Voir les cartes » : lu et visé à 2 m comme « Lancer le dé ». */
+.bouton-continuer { min-height: 96px; font-size: 30px; }
 .cordee-liste { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 6px 14px; border-radius: 12px; border: 1px dashed var(--filet); }
 .cordee-liste p { display: flex; align-items: center; gap: 10px; font-size: 15px; height: 28px; }
 .cordee-liste .pastille-joueur { box-shadow: none; }
