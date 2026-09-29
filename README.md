@@ -12,7 +12,8 @@ hors ligne, une fois installée.
 2. Choisir le **plateau**, numéroté de 1 à 10. Le numéro correspond à la
    difficulté : 1 à 3 « Reprise », 4 à 6 « Renforcement », 7 à 8
    « Réathlétisation », 9 à 10 « Retour au sport ». Chaque plateau compte
-   44 cases, de 2 100 m (départ) à 3 656 m, la Grande Motte (sommet). Les
+   72 cases, de 2 100 m (départ) à 3 656 m, la Grande Motte (sommet). Les
+   cases col, chamois, duel, cordée et météo y figurent en double. Les
    plateaux de niveau 1 à 3 ont 1 avalanche et 1 crevasse. À partir du
    niveau 4, ils ont 2 avalanches et toujours 1 crevasse. Les plateaux de
    niveau 7 à 10 gardent ces mêmes cases et ajoutent en plus des cases
@@ -34,14 +35,17 @@ Ces écrans de mise en place sont à remplir par le kiné, pas par le patient.
    restent consultables à tout moment depuis le bouton « Règles du jeu » de
    l'écran d'accueil, sous les zones.
 5. L'échauffement s'affiche ensuite, guidé selon la zone choisie. Il a lieu
-   une seule fois, tous ensemble, avant le premier lancer de dé.
+   une seule fois, tous ensemble, avant le premier lancer de dé. Les
+   exercices en secondes ont leur chrono (Démarrer / Pause), avec un bip à la
+   fin.
 
 ### Un tour de jeu
 
 1. Chaque joueur encore en course touche « Lancer le dé » à son tour. Le
    pion avance du nombre de cases obtenu.
 2. Les cartes d'exercice s'affichent ensuite, une colonne par joueur, tous
-   en même temps. Chaque carte indique l'exercice, le matériel, le dosage,
+   en même temps. Sous le prénom, chaque carte affiche le nombre de cases
+   restantes jusqu'au sommet. Elle indique l'exercice, le matériel, le dosage,
    la consigne de charge et un minuteur si besoin. Les boutons dépendent du
    type de carte : « Fait » pour un exercice classique, « Réussi » / « Raté »
    pour un chamois ou un duel solo contre le chronomètre, un bouton par
@@ -171,7 +175,8 @@ d'erreur.
 - [ ] Le bip de fin de minuteur s'entend bien dans la salle.
 - [ ] Une partie solo réelle, chronométrée, dure entre 45 et 50 minutes.
       Noter la durée obtenue : elle sert à recalibrer la longueur des
-      plateaux si besoin.
+      plateaux si besoin. (Mesure du 29/09 : 30 min sur les anciens plateaux
+      de 44 cases, d'où le passage à 72 cases.)
 - [ ] Pour une partie à 4 joueurs, le matériel du cabinet suffit (haltères,
       kettlebells, élastiques, steps, tapis, en nombre suffisant).
 - [ ] Un patient avec le filtre « sans saut » ne reçoit jamais de saut, même

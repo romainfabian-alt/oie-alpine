@@ -293,16 +293,45 @@
 
     // ---------------------------------------------------------- échauffement
 
+    // Chrono des lignes d'échauffement en secondes (« 45 s ») : une fausse
+    // carte par ligne, gardée d'un redessin à l'autre pour que le temps
+    // écoulé survive (son coupé, fenêtre fermée...). Retour de Romain du 29/09.
+    var chronosEchauffement = {};
+    function chronoEchauffement(i, dose) {
+      var s = /^(\d+) s$/.exec(dose);
+      if (!s) return null;
+      if (!chronosEchauffement[i]) chronosEchauffement[i] = { secondes: Number(s[1]), fait: false };
+      return chronosEchauffement[i];
+    }
+
+    // Rafraîchit les minuteurs affichés tant que l'écran est en place.
+    function lancerTic(ecran) {
+      if (!minuteurs.length) return;
+      tic = global.setInterval(function () {
+        // Écran retiré sans passer par Quitter (racine vidée par l'app) : plus aucun bip.
+        if (quitte || !doc.documentElement.contains(ecran)) { nettoyer(); minuteurs = []; return; }
+        // e.maj() déclenche son.bip() : une exception (Web Audio sur iOS,
+        // par exemple) ne doit jamais remonter jusqu'à window.onerror, sinon
+        // le filet d'erreur global tue une partie par ailleurs saine.
+        minuteurs.forEach(function (x) {
+          if (x.carte.fait || !x.maj) return;
+          try { x.maj(); } catch (err) { if (global.console) global.console.error(err); }
+        });
+      }, 200);
+    }
+
     function ecranEchauffement() {
-      var lignes = (p.ctx.ev.echauffements[p.plateau.zone] || []).map(function (l) {
+      var lignes = (p.ctx.ev.echauffements[p.plateau.zone] || []).map(function (l, i) {
         var k = l.lastIndexOf(" : ");
         var nom = k === -1 ? l : l.slice(0, k), dose = k === -1 ? "" : l.slice(k + 3), m = morceauxDosage(dose);
-        return UI.el("li", { classe: "echauffement-ligne" }, [
+        var chrono = chronoEchauffement(i, dose);
+        return UI.el("li", { classe: "echauffement-ligne" + (chrono ? " echauffement-ligne-chrono" : "") }, [
           UI.el("span", { classe: "echauffement-nom", texte: nom }),
-          dose ? UI.el("span", { classe: "echauffement-dose" }, [doc.createTextNode(m.valeur), m.cote ? UI.el("small", { texte: m.cote }) : null]) : null
+          chrono ? blocMinuteur(chrono)
+            : dose ? UI.el("span", { classe: "echauffement-dose" }, [doc.createTextNode(m.valeur), m.cote ? UI.el("small", { texte: m.cote }) : null]) : null
         ]);
       });
-      return UI.el("section", { classe: "ecran ecran-echauffement" }, [
+      var ecran = UI.el("section", { classe: "ecran ecran-echauffement" }, [
         bandeau([
           UI.el("h2", { classe: "titre-ecran", texte: "Échauffement" }),
           UI.el("p", { classe: "bandeau-sous bandeau-sous-ligne", texte: "Tous ensemble, avant le premier lancer" })
@@ -316,6 +345,8 @@
             onclick: function () { son.debloquer(); agir(function () { if (p.phase === "echauffement") Regles.demarrer(p); }); } })
         ])
       ]);
+      lancerTic(ecran);
+      return ecran;
     }
 
     // ---------------------------------------------------------- présentation du lancer
@@ -760,6 +791,13 @@
       return c.objectif;
     }
 
+    // Distance au sommet, pour que chacun voie où il en est pendant l'effort
+    // (retour de Romain du 29/09).
+    function texteReste(j) {
+      var n = Regles.derniere(p) - j.position;
+      return n <= 0 ? "Au sommet" : "Sommet dans " + n + (n === 1 ? " case" : " cases");
+    }
+
     function carte(c) {
       var j = p.joueurs[c.joueur], m = morceauxDosage(c.dosage), type = libelleType(p, c);
       var icone = RP.ICONES[c.type] && c.type !== "exercice" && !c.recuperation ? picto(RP.ICONES[c.type], 18) : UI.el("span", { classe: "puce-exo" });
@@ -777,6 +815,7 @@
           UI.el("span", { classe: "carte-prenom", texte: j.prenom }),
           UI.el("span", { classe: "carte-niveau", texte: "Niveau " + j.niveau })
         ]),
+        UI.el("p", { classe: "carte-reste" }, [picto(RP.ICONES.sommet, 20), doc.createTextNode(insecable(texteReste(j)))]),
         UI.el("div", { classe: "carte-corps" }, [
           type ? UI.el("p", { classe: "carte-type" }, [icone, doc.createTextNode(type)]) : null,
           UI.el("h3", { classe: "carte-titre", texte: c.titre }),
@@ -831,19 +870,7 @@
       }
       enfants.push(UI.el("main", { classe: "cartes cartes-" + e.cartes.length }, e.cartes.map(carte)));
       var ecran = UI.el("section", { classe: "ecran ecran-effort" }, enfants);
-      if (minuteurs.length) {
-        tic = global.setInterval(function () {
-          // Écran retiré sans passer par Quitter (racine vidée par l'app) : plus aucun bip.
-          if (quitte || !doc.documentElement.contains(ecran)) { nettoyer(); minuteurs = []; return; }
-          // e.maj() déclenche son.bip() : une exception (Web Audio sur iOS,
-          // par exemple) ne doit jamais remonter jusqu'à window.onerror, sinon
-          // le filet d'erreur global tue une partie par ailleurs saine.
-          minuteurs.forEach(function (x) {
-            if (x.carte.fait || !x.maj) return;
-            try { x.maj(); } catch (err) { if (global.console) global.console.error(err); }
-          });
-        }, 200);
-      }
+      lancerTic(ecran);
       return ecran;
     }
 

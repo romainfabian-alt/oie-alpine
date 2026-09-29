@@ -26,7 +26,13 @@
     avalanche: "Avalanche", sommet: "Sommet", col: "Col", chamois: "Chamois", duel: "Duel", cordee: "Cordée",
     meteo: "Météo", bivouac: "Bivouac", ravitaillement: "Ravitaillement" };
 
-  function grille(n) { return { colonnes: Math.max(10, Math.ceil((n - 8) / 4)), lignes: 6 }; }
+  // Jusqu'à 48 cases : 10 × 6. Au-delà (plateaux de 72 cases depuis le
+  // 29/09) : 8 lignes, pour garder des cases assez grandes sur l'iPad et un
+  // centre libre de 2 lignes pour le lancer, plus une pour les positions.
+  function grille(n) {
+    if (n <= 48) return { colonnes: 10, lignes: 6 };
+    return { colonnes: Math.max(12, Math.ceil((n - 24) / 4)), lignes: 8 };
+  }
 
   function spirale(n, colonnes, lignes) {
     var res = [], haut = 0, bas = lignes - 1, gauche = 0, droite = colonnes - 1, c, l;

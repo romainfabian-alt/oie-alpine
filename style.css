@@ -240,6 +240,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .carte-entete { min-height: calc(56px * var(--ech2)); flex: none; background: var(--joueur); color: var(--joueur-texte);
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; padding: 5px 16px; }
 .carte-prenom { font-weight: 600; font-size: calc(28px * var(--ech)); line-height: 1.1; min-width: 0; overflow-wrap: break-word; }
+/* Cases restantes jusqu'au sommet : bandeau clair sous l'en-tête, lisible à 2 m. */
+.carte-reste { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 16px; font-weight: 600; font-size: calc(20px * var(--ech2));
+  color: var(--cacao); background: color-mix(in srgb, var(--joueur) 14%, var(--papier)); border-bottom: 1px solid color-mix(in srgb, var(--joueur) 30%, transparent); white-space: nowrap; }
+.carte-reste .picto { flex: none; color: var(--sapin); }
 .carte-niveau { flex: none; font-weight: 600; font-size: calc(18px * var(--ech2)); padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,.22); white-space: nowrap; }
 /* Corps : tout est à taille fixe sauf la description, seule à se resserrer
    puis à défiler. Le dosage, le nom et les boutons ne cèdent jamais. */
@@ -347,6 +351,11 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .echauffement-nom { flex: 1; font-size: 25px; font-weight: 600; line-height: 1.25; }
 .echauffement-dose { flex: none; display: flex; align-items: baseline; gap: 8px; font-size: 38px; font-weight: 600; white-space: nowrap; }
 .echauffement-dose small { font-size: 20px; }
+/* Ligne chronométrée : le minuteur des cartes remplace la dose, en couleur sapin. */
+.echauffement-ligne-chrono { --ech2: 0.8; --joueur: var(--sapin); }
+.echauffement-ligne-chrono .minuteur { flex: none; flex-wrap: nowrap; min-height: 0; }
+.echauffement-ligne-chrono .minuteur-temps { flex: none; min-width: 96px; text-align: right; }
+.echauffement-ligne-chrono .bouton-minuteur { min-width: 150px; min-height: 64px; font-size: 22px; }
 .echauffement-joueurs { display: flex; flex-wrap: wrap; gap: 26px; }
 .echauffement-joueur { display: flex; align-items: center; gap: 12px; font-size: 22px; }
 .echauffement-joueur b { font-weight: 600; }
