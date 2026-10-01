@@ -28,6 +28,26 @@
     return "Seul " + texteDuree(minutes(d[0], 1)) + " · à 4 " + texteDuree(minutes(d[3], 4));
   }
 
+  // Durée mesurée, à la minute : « 47 min », « 1 h 05 ».
+  function texteChrono(min) {
+    var m = Math.round(min);
+    if (m < 60) return m + " min";
+    return Math.floor(m / 60) + " h " + (m % 60 < 10 ? "0" : "") + (m % 60);
+  }
+
+  // La ligne du podium, pour recaler MINUTES_PAR_TOUR et SURCOUT_PAR_JOUEUR.
+  // chrono : { debut (écran d'échauffement), depart (premier lancer), fin
+  // (podium) } en millisecondes. L'échauffement est à part : il ne dépend pas
+  // du nombre de tours.
+  function chronoPartie(chrono, tours, nbJoueurs) {
+    if (!chrono || !chrono.depart || !chrono.fin || tours < 1) return "";
+    var jeu = (chrono.fin - chrono.depart) / 60000, echauffement = (chrono.depart - chrono.debut) / 60000;
+    return "Chrono : " + texteChrono(jeu) + " de jeu" +
+      (echauffement >= 1 ? " + " + texteChrono(echauffement) + " d'échauffement" : "") +
+      " · " + (jeu / tours).toFixed(1).replace(".", ",") + " min par tour" +
+      (nbJoueurs > 1 ? " à " + nbJoueurs : " seul");
+  }
+
   // Le matériel à sortir pour ce plateau, joué à son niveau : celui de toutes
   // les variantes des chaînes présentes, du plus utilisé au moins utilisé.
   function materiel(plateau, bib) {
@@ -54,7 +74,7 @@
   }
 
   var Estimation = { minutes: minutes, texteDuree: texteDuree, resume: resume, materiel: materiel,
-    texteMateriel: texteMateriel, MINUTES_PAR_TOUR: MINUTES_PAR_TOUR };
+    texteMateriel: texteMateriel, chronoPartie: chronoPartie, MINUTES_PAR_TOUR: MINUTES_PAR_TOUR };
   if (typeof module !== "undefined" && module.exports) module.exports = Estimation;
   else global.Estimation = Estimation;
 })(typeof globalThis !== "undefined" ? globalThis : this);

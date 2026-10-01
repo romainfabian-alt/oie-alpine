@@ -311,6 +311,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .marche-2 .marche-bloc { height: 190px; background: var(--sapin); }
 .marche-4 .marche-bloc { height: 120px; background: #8A7B69; }
 .podium-pied { position: absolute; right: 44px; bottom: 44px; }
+.podium-chrono { margin: 6px 0 0; font-size: 16px; color: var(--cacao-doux); }
 
 /* ---------------------------------------------------------------- écran de partie (tâche 14) */
 /* plateau : cadre au rapport de la grille, centré ; le cœur (lancer) et la

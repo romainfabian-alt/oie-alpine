@@ -9,6 +9,7 @@
   var R = (typeof require !== "undefined") ? require("./referentiel.js") : global.Referentiel;
   var DP = (typeof require !== "undefined") ? require("./deplacement.js") : global.Deplacement;
   var A = (typeof require !== "undefined") ? require("./aleatoire.js") : global.Aleatoire;
+  var E = (typeof require !== "undefined") ? require("./estimation.js") : global.Estimation;
 
   var JAUNE = "#E0A526";
   var ROULE_MS = 640;                 // durée du roulé du dé, cf. « de-roule » en CSS
@@ -127,6 +128,8 @@
     // tire les exercices et ne doit pas dépendre de ce qui est animé.
     var aleaEcran = A.creer(Date.now() % 4294967296);
     var minuteurs = [];               // { carte, m, bipe } : survivent aux redessins de l'étape
+    // Chrono de la partie, affiché au podium (cf. Estimation.chronoPartie).
+    if (!p.chrono) p.chrono = { debut: Date.now() };
 
     function depuisHTML(html) { var d = doc.createElement("div"); d.innerHTML = html; return d.firstElementChild; }
     function picto(corps, taille, classe) {
@@ -342,7 +345,7 @@
             return UI.el("span", { classe: "echauffement-joueur" }, [pastille(j, 24), UI.el("b", { texte: j.prenom })]);
           })),
           UI.el("button", { type: "button", classe: "bouton bouton-principal bouton-large", texte: "C'est parti",
-            onclick: function () { son.debloquer(); agir(function () { if (p.phase === "echauffement") Regles.demarrer(p); }); } })
+            onclick: function () { son.debloquer(); agir(function () { if (p.phase === "echauffement") { Regles.demarrer(p); p.chrono.depart = Date.now(); } }); } })
         ])
       ]);
       lancerTic(ecran);
@@ -914,13 +917,16 @@
         '<polyline class="m2" points="0,430 140,330 230,380 380,250 470,300 590,120 700,230 790,190 930,320 1040,270 1180,380"/>' +
         '<polyline class="m1" points="0,520 0,470 180,390 300,440 450,340 590,410 760,320 900,400 1050,350 1180,420 1180,520"/></svg>');
       var tours = p.tour + (p.tour > 1 ? " tours" : " tour");
+      if (!p.chrono.fin) p.chrono.fin = Date.now();
+      var chrono = E.chronoPartie(p.chrono, p.tour, p.joueurs.length);
       return UI.el("section", { classe: "ecran ecran-podium" }, [
         montagne,
         UI.el("header", { classe: "podium-tete" }, [
           UI.el("p", { classe: "surtitre", texte: "Grande Motte · " + altitude(p.plateau.altitudes[derniere]) }),
           UI.el("h1", { classe: "titre-podium", texte: "Au sommet" }),
           UI.el("p", { classe: "sous-titre", texte: (tousAuSommet ? "Partie terminée en " + tours : "Partie arrêtée au tour " + p.tour) +
-            " sur le plateau " + sousPlateau().replace(" · Plateau", "") + "." })
+            " sur le plateau " + sousPlateau().replace(" · Plateau", "") + "." }),
+          chrono ? UI.el("p", { classe: "podium-chrono", texte: chrono }) : null
         ]),
         UI.el("main", { classe: "podium podium-" + groupes.length }, marches),
         UI.el("footer", { classe: "podium-pied" }, [

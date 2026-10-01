@@ -1,7 +1,7 @@
 // Numéro de version du cache : à incrémenter (oie-alpine-v2, v3, ...) à
 // CHAQUE modification d'un fichier listé dans FICHIERS. Sans ça, l'iPad déjà
 // installé continue de servir l'ancienne version indéfiniment.
-var CACHE = "oie-alpine-v5";
+var CACHE = "oie-alpine-v6";
 
 var FICHIERS = [
   "./",
