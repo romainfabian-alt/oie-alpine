@@ -75,7 +75,12 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .tuile-plateau { flex: 1; position: relative; overflow: hidden; border-radius: var(--rayon); border: 2px solid var(--filet); background: var(--papier);
   display: flex; flex-direction: column; align-items: flex-start; padding: 10px 16px; text-align: left; min-height: 60px; }
 .tuile-num { font-weight: 500; font-size: 56px; line-height: 1; letter-spacing: -0.02em; color: var(--cacao); }
-.tuile-meta { font-size: 14px; line-height: 1.35; color: var(--cacao-doux); margin-top: 4px; position: relative; z-index: 1; }
+.tuile-meta { font-size: 14px; line-height: 1.35; color: var(--cacao-doux); margin-top: 4px; position: relative; z-index: 1;
+  display: flex; flex-direction: column; gap: 5px; }
+.tuile-duree { color: var(--cacao); font-size: 15px; line-height: 1.3; }
+.tuile-duree b { font-weight: 600; color: var(--sapin); }
+.tuile-materiel { font-size: 13.5px; line-height: 1.3; }
+.tuile-pieges { font-size: 12.5px; letter-spacing: .02em; }
 .tuile-relief { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 46px; }
 .tuile-relief polyline { fill: rgba(176, 125, 79, 0.10); stroke: var(--cuivre); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
 .phase-2 .tuile-num { font-size: 72px; }
@@ -139,8 +144,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   45%  { stroke-width: 10; }
   100% { stroke-width: 5; }
 }
-.pion-lettre { font-size: 18px; font-weight: 600; }
-.pion-lettre-serree { font-size: 15px; }
+.pion-lettre { font-size: 26px; font-weight: 600; }
+.pion-lettre-serree { font-size: 21px; }
 
 .coeur { position: absolute; display: flex; align-items: center; gap: 28px; padding: 0 30px; border-radius: 18px;
   background: var(--ivoire); border: 1px solid var(--cuivre); box-shadow: inset 0 0 0 5px var(--ivoire), inset 0 0 0 6px rgba(176,125,79,.35); }
@@ -238,7 +243,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* Un prénom long (« Anne-Charlotte ») garde ses 28 px : c'est le niveau qui
    passe à la ligne, jamais le prénom qui rétrécit ou se coupe en plein milieu. */
 .carte-entete { min-height: calc(56px * var(--ech2)); flex: none; background: var(--joueur); color: var(--joueur-texte);
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; padding: 5px 16px; }
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 8px; padding: 5px 12px; }
 .carte-prenom { font-weight: 600; font-size: calc(28px * var(--ech)); line-height: 1.1; min-width: 0; overflow-wrap: break-word; }
 /* Cases restantes jusqu'au sommet : bandeau clair sous l'en-tête, lisible à 2 m. */
 .carte-reste { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 16px; font-weight: 600; font-size: calc(20px * var(--ech2));
@@ -253,7 +258,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .puce-exo { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--cuivre); margin: 0 4px; }
 .carte-titre { font-weight: 600; font-size: calc(32px * var(--ech)); line-height: 1.1; margin-top: 6px; }
 .carte-description { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
-  font-size: calc(18px * var(--ech2)); line-height: 1.3; margin-top: 8px; }
+  font-size: calc(23px * var(--ech2)); line-height: 1.3; margin-top: 10px; }
 .carte-materiel { display: flex; align-items: center; gap: 8px; font-size: calc(20px * var(--ech2)); font-weight: 600; color: var(--cacao-doux); margin-top: 8px; }
 .carte-bas { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 10px; }
 .carte-dosage { font-weight: 600; font-size: calc(64px * var(--ech)); line-height: 1; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 10px; }
@@ -272,6 +277,9 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .en-cours .minuteur-anneau .reste { stroke: var(--joueur); }
 .minuteur-temps { font-weight: 600; font-size: calc(48px * var(--ech2)); line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; flex: 1 1 auto; text-align: center; }
 .bouton-minuteur { flex: none; min-height: 60px; padding: 0 14px; font-size: calc(20px * var(--ech2)); }
+/* Minuteur qui tient lieu de dosage : il prend la taille du dosage. */
+.minuteur-principal .minuteur-temps { font-size: calc(58px * var(--ech)); }
+.minuteur-cote { flex: none; font-weight: 600; font-size: calc(26px * var(--ech2)); color: var(--cacao); }
 .carte .bouton-minuteur { min-height: 60px; }
 .carte-objectif { font-size: calc(18px * var(--ech2)); font-weight: 600; line-height: 1.25; color: var(--sapin); }
 .carte-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -370,7 +378,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
    commencer) se resserre, puis défile. Le dosage, le nom de l'exercice, le
    prénom et les boutons gardent leur taille : ce sont eux qu'on lit à 2 m. */
 .carte-serree .carte-type { display: none; }
-.carte-serree .carte-description { font-size: calc(15px * var(--ech2)); line-height: 1.24; margin-top: 6px; }
+.carte-serree .carte-description { font-size: calc(18px * var(--ech2)); line-height: 1.28; margin-top: 8px; }
+.carte-tres-serree .carte-description { font-size: calc(15px * var(--ech2)); line-height: 1.24; margin-top: 6px; }
 .carte-serree .carte-titre { margin-top: 2px; }
 .carte-serree .carte-materiel { margin-top: 6px; }
 .carte-serree .carte-bas { gap: 6px; padding-top: 6px; }
@@ -461,4 +470,69 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   .pied-regles .pied-note { font-size: 17px; }
   .bouton-suite { min-height: 76px; padding: 0 42px; font-size: 32px; }
   .lien-regles { min-height: 54px; font-size: 19px; margin-top: 12px; }
+}
+
+
+/* ---------------------------------------------------------------- vue 7 bis : règles illustrées (01/10) */
+/* Avant l'échauffement, pour les patients : quatre étapes dessinées, puis
+   les cases spéciales en pictogrammes. Rien ne défile, y compris en 1180 × 820. */
+.illu { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 14px 24px 4px; }
+.illu-etapes { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; flex: 1.25 1 0; min-height: 0; }
+.illu-etape { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; min-height: 0;
+  background: var(--papier); border: 2px solid var(--filet); border-radius: 18px; padding: 10px 14px 14px; }
+/* Le numéro en Jura dans une pastille cuivre : en Italiana, « 1 » se lit « I ». */
+.illu-num { position: absolute; top: 12px; left: 12px; width: 38px; height: 38px; border-radius: 50%; background: var(--cuivre);
+  color: var(--ivoire); font-weight: 600; font-size: 22px; line-height: 38px; text-align: center; }
+.illu-dessin { flex: 1 1 0; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+.illu-dessin svg { width: 100%; height: 100%; max-height: 170px; overflow: visible; }
+.illu-titre { font-weight: 600; font-size: 25px; color: var(--sapin); margin-top: 6px; }
+.illu-phrase { font-size: 18px; line-height: 1.3; color: var(--cacao); margin-top: 4px; min-height: 2.6em; }
+.illu-cases { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.illu-grille { list-style: none; flex: 1; min-height: 0; margin-top: 10px; display: grid; grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: 1fr; gap: 8px 12px; }
+.illu-case { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.illu-case-picto { flex: none; width: 46px; height: 46px; border-radius: 12px; background: var(--sapin-voile); color: var(--sapin);
+  display: flex; align-items: center; justify-content: center; }
+.illu-case-sommet .illu-case-picto { background: var(--cuivre); color: var(--ivoire); }
+.illu-case-corps { min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.illu-case-corps b { font-weight: 600; font-size: 17px; color: var(--sapin); }
+.illu-case-corps span { font-size: 15px; color: var(--cacao); }
+
+/* Le trait des dessins */
+.ill-mouv { fill: none; stroke: var(--cuivre); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.ill-pointille { stroke-dasharray: 2 7; }
+.ill-de { fill: var(--papier); stroke: var(--cacao); stroke-width: 3.5; }
+.ill-point { fill: var(--cacao); }
+.ill-case { stroke: var(--filet); stroke-width: 1.5; }
+.ill-num { font-family: "Jura", sans-serif; font-weight: 600; font-size: 14px; fill: var(--cacao-doux); }
+.ill-fantome { fill: none; stroke: var(--cacao-doux); stroke-width: 2; stroke-dasharray: 4 4; }
+.ill-pion { stroke: var(--ivoire); stroke-width: 3.5; }
+.ill-lettre { font-family: "Jura", sans-serif; font-weight: 600; font-size: 19px; fill: #fff; text-anchor: middle; }
+.ill-carte { fill: var(--papier); stroke: var(--cacao); stroke-width: 2.5; }
+.ill-ligne { fill: var(--cacao); }
+.ill-ligne-douce { fill: var(--filet); }
+.ill-dosage { font-family: "Jura", sans-serif; font-weight: 600; font-size: 34px; fill: var(--cacao); }
+.ill-coches polyline { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.ill-bouton { fill: var(--sapin); }
+.ill-bouton-ombre { fill: #1D2C24; }
+.ill-bouton-texte { font-family: "Jura", sans-serif; font-weight: 600; font-size: 26px; fill: var(--ivoire); text-anchor: middle; }
+
+@media (min-width: 1300px) {
+  .illu { gap: 22px; padding: 20px 30px 6px; }
+  .illu-etapes { gap: 20px; }
+  .illu-titre { font-size: 30px; }
+  .illu-phrase { font-size: 21px; }
+  .illu-dessin svg { max-height: 210px; }
+  .illu-case-picto { width: 54px; height: 54px; }
+  .illu-case-corps b { font-size: 20px; }
+  .illu-case-corps span { font-size: 17px; }
+}
+
+/* iPad 1180 × 820 : les colonnes de trois plateaux sont trop basses pour
+   quatre lignes. Les pièges (déjà visibles sur le plateau) s'effacent, le
+   matériel tient sur une ligne. */
+@media (max-width: 1299px) {
+  .tuile-pieges { display: none; }
+  .tuile-materiel { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .tuile-meta { gap: 3px; max-width: 100%; }
 }

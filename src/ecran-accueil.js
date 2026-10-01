@@ -78,12 +78,22 @@
         [pictoZone(z), UI.el("span", { texte: R.ZONES[z].libelle })]);
     }
 
+    // Ce qui aide le kiné à choisir (retour du 01/10) : la durée estimée,
+    // seul et à quatre, et le matériel à sortir. Les pièges suivent, en petit.
     function tuilePlateau(p) {
-      var meta = UI.el("span", { classe: "tuile-meta" }, [
-        global.document.createTextNode(pluriel(compte(p, "avalanche"), "avalanche")),
-        global.document.createElement("br"),
-        global.document.createTextNode(pluriel(compte(p, "crevasse"), "crevasse"))
-      ]);
+      var E = global.Estimation, d = (global.DUREES || {})[p.id];
+      var lignes = [];
+      if (E && d) {
+        lignes.push(UI.el("span", { classe: "tuile-duree" }, [
+          UI.el("b", { texte: E.texteDuree(E.minutes(d[0], 1)) }), global.document.createTextNode(" seul"),
+          global.document.createElement("br"),
+          UI.el("b", { texte: E.texteDuree(E.minutes(d[3], 4)) }), global.document.createTextNode(" à 4")
+        ]));
+      }
+      if (E && o.bib) lignes.push(UI.el("span", { classe: "tuile-materiel", texte: E.texteMateriel(E.materiel(p, o.bib)) }));
+      lignes.push(UI.el("span", { classe: "tuile-pieges",
+        texte: pluriel(compte(p, "avalanche"), "avalanche") + " · " + pluriel(compte(p, "crevasse"), "crevasse") }));
+      var meta = UI.el("span", { classe: "tuile-meta" }, lignes);
       return boutonNu("tuile-plateau", function () { o.surChoix(p); }, [
         UI.el("span", { classe: "tuile-num", texte: String(p.niveau) }), meta, relief(p.niveau)
       ]);

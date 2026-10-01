@@ -84,7 +84,7 @@
       return UI.el("section", { classe: "emplacement vide", style: "--joueur:" + j.couleur }, [
         UI.el("div", { classe: "emplacement-tete" }, [pastille(j, 34), UI.el("span", { texte: "Joueur " + (i + 1) })]),
         UI.el("div", { classe: "emplacement-vide" }, [
-          boutonNu("bouton bouton-ajout", function () { joueurs.push(nouveau(i)); dessiner(); },
+          boutonNu("bouton bouton-ajout", function () { joueurs.push(nouveau(joueurs.length)); dessiner(); },
             [UI.el("span", { classe: "plus", texte: "+" }), global.document.createTextNode("Ajouter un joueur")])
         ])
       ]);

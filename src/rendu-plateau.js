@@ -47,6 +47,24 @@
     return res.slice(0, n);
   }
 
+  // Couleur de fond d'une case selon sa hauteur sur le plateau (retour de
+  // Romain du 01/10) : prairie en bas, rocher à mi-pente, neige en haut. On
+  // suit la montée d'un coup d'oeil, sans lire les numéros. Les teintes
+  // restent très claires : le nom de l'exercice doit se lire à 2 m.
+  var PALIERS = [[0, [215, 229, 207]], [0.5, [232, 225, 211]], [1, [238, 243, 248]]];
+  var SAPIN = [47, 70, 57];
+  function hex(rgb) {
+    return "#" + rgb.map(function (v) { var h = Math.round(v).toString(16); return h.length < 2 ? "0" + h : h; }).join("");
+  }
+  function melanger(a, b, t) { return [0, 1, 2].map(function (k) { return a[k] + (b[k] - a[k]) * t; }); }
+  function teinte(i, n, speciale) {
+    var t = n > 1 ? i / (n - 1) : 0, k = t <= PALIERS[1][0] ? 0 : 1;
+    var a = PALIERS[k], b = PALIERS[k + 1];
+    var rgb = melanger(a[1], b[1], (t - a[0]) / (b[0] - a[0]));
+    // Une case spéciale se détache par un voile de sapin, en plus de son picto.
+    return hex(speciale ? melanger(rgb, SAPIN, 0.12) : rgb);
+  }
+
   function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
   function altitude(m) { return String(m).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " m"; }
 
@@ -101,8 +119,9 @@
       }
       var cible = (c.type === "telecabine" || c.type === "avalanche") && typeof c.cible === "number"
         ? '<text class="case-cible" x="' + (COTE - 10) + '" y="26" text-anchor="end">vers ' + (c.cible + 1) + "</text>" : "";
+      var fond = c.type === "sommet" ? "" : ' style="fill:' + teinte(i, n, special) + '"';
       morceaux.push('<g class="' + classes + '" transform="translate(' + x + "," + y + ')">' +
-        '<rect width="' + COTE + '" height="' + COTE + '" rx="10"/>' +
+        '<rect width="' + COTE + '" height="' + COTE + '" rx="10"' + fond + '/>' +
         '<text class="case-num" x="11" y="26">' + (i + 1) + "</text>" + cible + corps +
         '<text class="case-alt" x="' + (COTE / 2) + '" y="' + (COTE - 14) + '" text-anchor="middle">' +
         altitude(plateau.altitudes[i]) + "</text></g>");
@@ -125,19 +144,22 @@
     });
     Object.keys(parPosition).forEach(function (k) {
       var p = pos[Number(k)], baseX = p[1] * T + ESPACE / 2, baseY = p[0] * T + ESPACE / 2;
-      var groupe = parPosition[k], serres = groupe.length > 3;
-      var r = serres ? 13 : 16, pas = serres ? 30 : 38, depart = serres ? 140 : 136;
+      // Pions agrandis (retour du 01/10) : 48 unités de diamètre au lieu de
+      // 32, soit la moitié de la largeur d'une case, pour les suivre à 2 m.
+      // Ils se resserrent à trois et à quatre sur la même case.
+      var groupe = parPosition[k], nb = groupe.length, serres = nb > 2;
+      var r = nb <= 2 ? 24 : nb === 3 ? 21 : 18, pas = 2 * r + 3, depart = COTE - r - 4;
       groupe.forEach(function (j, idx) {
         // Une rangée dans la bande du haut, de droite à gauche : jamais sur le
         // numéro (à gauche), le nom, le pictogramme ou l'altitude (plus bas).
-        var cx = baseX + depart - idx * pas, cy = baseY + 24;
+        var cx = baseX + depart - idx * pas, cy = baseY + r + 4;
         var lettre = j.prenom ? j.prenom.charAt(0).toUpperCase() : "?";
         var couleurTexte = String(j.couleur).toUpperCase() === COULEURS[2].toUpperCase() ? "#3A2E22" : "#FFFFFF";
         var cercle = actif !== undefined && actif !== null && j.id === actif
           ? '<circle class="pion-actif" r="' + (r + 5) + '" fill="none" stroke="' + j.couleur + '" stroke-width="2.5" stroke-dasharray="4 3"/>' : "";
         morceaux.push('<g class="pion' + (cercle ? " pion-en-cours" : "") + '" transform="translate(' + cx + "," + cy + ')">' + cercle +
           '<circle r="' + r + '" fill="' + j.couleur + '" stroke="#FAF6EE" stroke-width="3"/>' +
-          '<text class="pion-lettre' + (serres ? " pion-lettre-serree" : "") + '" text-anchor="middle" dy="' + (serres ? 5 : 6) + '" fill="' + couleurTexte + '">' + esc(lettre) + "</text></g>");
+          '<text class="pion-lettre' + (serres ? " pion-lettre-serree" : "") + '" text-anchor="middle" dy="' + (serres ? 7 : 9) + '" fill="' + couleurTexte + '">' + esc(lettre) + "</text></g>");
       });
     });
 
@@ -145,7 +167,8 @@
     return morceaux.join("");
   }
 
-  var RenduPlateau = { grille: grille, spirale: spirale, svg: svg, ligniser: ligniser, COULEURS: COULEURS, NOMS: NOMS, ICONES: ICONES };
+  var RenduPlateau = { grille: grille, spirale: spirale, svg: svg, ligniser: ligniser, teinte: teinte,
+    COULEURS: COULEURS, NOMS: NOMS, ICONES: ICONES };
   if (typeof module !== "undefined" && module.exports) module.exports = RenduPlateau;
   else global.RenduPlateau = RenduPlateau;
 })(typeof globalThis !== "undefined" ? globalThis : this);

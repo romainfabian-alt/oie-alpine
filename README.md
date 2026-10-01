@@ -17,8 +17,11 @@ hors ligne, une fois installée.
    plateaux de niveau 1 à 3 ont 1 avalanche et 1 crevasse. À partir du
    niveau 4, ils ont 2 avalanches et toujours 1 crevasse. Les plateaux de
    niveau 7 à 10 gardent ces mêmes cases et ajoutent en plus des cases
-   ravitaillement et cordée. L'écran d'accueil affiche le nombre
-   d'avalanches et de crevasses sur chaque plateau.
+   ravitaillement et cordée. Sur l'écran d'accueil, chaque plateau affiche
+   sa durée estimée (seul et à 4 joueurs), le matériel à sortir et, sur le
+   grand iPad, son nombre d'avalanches et de crevasses. La durée part d'une
+   partie chronométrée au cabinet (2,4 min par tour seul) ; à plusieurs,
+   c'est une estimation à recaler.
 3. Ajouter de 1 à 4 joueurs. Pour chacun :
    - un prénom (facultatif),
    - une couleur de pion,
@@ -29,11 +32,12 @@ hors ligne, une fois installée.
 
 Ces écrans de mise en place sont à remplir par le kiné, pas par le patient.
 
-4. L'écran « Règles du jeu » s'affiche ensuite : le déroulé d'un tour, le
-   piolet, les cases spéciales et la fin de partie. « Commencer
-   l'échauffement » et « Passer » mènent tous deux à la suite. Ces règles
-   restent consultables à tout moment depuis le bouton « Règles du jeu » de
-   l'écran d'accueil, sous les zones.
+4. L'écran « Comment on joue » s'affiche ensuite, pour les patients : les
+   quatre étapes d'un tour en dessins et les cases spéciales en
+   pictogrammes. « Commencer l'échauffement » et « Passer » mènent tous deux
+   à la suite. Les règles complètes, en texte (piolet, cases collectives, fin
+   de partie), restent consultables à tout moment depuis le bouton « Règles
+   du jeu » de l'écran d'accueil, sous les zones.
 5. L'échauffement s'affiche ensuite, guidé selon la zone choisie. Il a lieu
    une seule fois, tous ensemble, avant le premier lancer de dé. Les
    exercices en secondes ont leur chrono (Démarrer / Pause), avec un bip à la

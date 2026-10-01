@@ -481,7 +481,7 @@
         }
         enfants.push(UI.el("div", { classe: "lancer-texte" }, [
           UI.el("p", { classe: "lancer-sur", texte: "Dernier lancer" }),
-          UI.el("p", { classe: "lancer-res" }, [UI.el("b", { style: "color:" + j.couleur, texte: j.prenom }), doc.createTextNode(" a fait\u00a0" + dernier.r.de)]),
+          UI.el("p", { classe: "lancer-res" }, [UI.el("b", { style: "color:" + j.couleur, texte: j.prenom }), doc.createTextNode(" a\u00a0fait\u00a0"), chiffreDe(dernier.r.de)]),
           ligneEffet
         ]));
       } else {
@@ -597,7 +597,7 @@
       var gauche, lanceur = p.attente ? p.joueurs[p.attente.joueur] : (vue ? p.joueurs[dernier.r.joueur] : null);
       if (lanceur && dernier && dernier.tour === p.tour && dernier.r.joueur === lanceur.id) {
         gauche = [pastille(lanceur, 40), UI.el("h2", { classe: "titre-tour" }, [
-          UI.el("b", { style: "color:" + lanceur.couleur, texte: lanceur.prenom }), doc.createTextNode(" a fait\u00a0" + dernier.r.de)])];
+          UI.el("b", { style: "color:" + lanceur.couleur, texte: lanceur.prenom }), doc.createTextNode(" a\u00a0fait\u00a0"), chiffreDe(dernier.r.de)])];
       } else if (lanceur) {
         gauche = [pastille(lanceur, 40), UI.el("h2", { classe: "titre-tour" }, [doc.createTextNode("À "),
           UI.el("b", { style: "color:" + lanceur.couleur, texte: lanceur.prenom }), doc.createTextNode(" de choisir")])];
@@ -699,6 +699,10 @@
       ouvrirModal(fermer);
     }
 
+    // Le chiffre du dé : en Italiana, un « 1 » se lit comme un « I ». Il passe
+    // en Jura, comme les prénoms, et reste collé à « a fait » (retour du 01/10).
+    function chiffreDe(n) { return UI.el("b", { classe: "chiffre-de", texte: String(n) }); }
+
     // ---------------------------------------------------------- effort
 
     function minuteurDe(c) {
@@ -708,7 +712,10 @@
       return e;
     }
 
-    function blocMinuteur(c) {
+    // `principal` : le minuteur tient lieu de dosage (« 20 s » ne s'affiche plus
+    // deux fois, retour du 01/10) ; il prend alors la taille du dosage et
+    // garde la mention « / côté » s'il y en a une.
+    function blocMinuteur(c, principal, cote) {
       var e = minuteurDe(c);
       var anneau = depuisHTML('<svg class="minuteur-anneau" viewBox="0 0 52 52" width="52" height="52"><circle cx="26" cy="26" r="22" class="fond"/>' +
         '<circle cx="26" cy="26" r="22" class="reste" stroke-dasharray="' + CIRCONFERENCE + " " + CIRCONFERENCE + '" transform="rotate(-90 26 26)"/></svg>');
@@ -717,8 +724,10 @@
       // quatre joueurs : dans ce cas l'anneau, décoratif, s'efface au profit
       // des chiffres (cf. .minuteur-long en CSS). « 30 s » ou « 1 min »
       // laissent la place et gardent l'anneau.
-      var classeBloc = "minuteur" + (F.duree(c.secondes).length > 6 ? " minuteur-long" : "");
-      var bloc = UI.el("div", { classe: classeBloc }, [anneau, temps]);
+      var classeBloc = "minuteur" + (F.duree(c.secondes).length > 6 ? " minuteur-long" : "") +
+        (principal ? " minuteur-principal" : "");
+      var bloc = UI.el("div", { classe: classeBloc }, [anneau, temps,
+        principal && cote ? UI.el("small", { classe: "minuteur-cote", texte: cote }) : null]);
       var bouton = UI.bouton("", function () {
         son.debloquer();
         var t = Date.now();
@@ -802,11 +811,15 @@
       var j = p.joueurs[c.joueur], m = morceauxDosage(c.dosage), type = libelleType(p, c);
       var icone = RP.ICONES[c.type] && c.type !== "exercice" && !c.recuperation ? picto(RP.ICONES[c.type], 18) : UI.el("span", { classe: "puce-exo" });
       var enCours = !c.fait;
+      // Un dosage qui n'est qu'une durée (« 20 s », « 1 min / côté ») est
+      // porté par le minuteur lui-même ; une consigne (« Le plus de
+      // répétitions en 30 s ») reste écrite au-dessus.
+      var chronoSeul = enCours && c.secondes && !m.texte;
       var bas = [
-        c.dosage ? UI.el("p", { classe: "carte-dosage" + (m.texte ? " carte-dosage-texte" : "") + (m.long ? " carte-dosage-long" : "") },
+        c.dosage && !chronoSeul ? UI.el("p", { classe: "carte-dosage" + (m.texte ? " carte-dosage-texte" : "") + (m.long ? " carte-dosage-long" : "") },
           [doc.createTextNode(m.valeur), m.cote ? UI.el("small", { texte: m.cote }) : null]) : null,
         enCours && c.charge ? UI.el("p", { classe: "carte-charge", texte: insecable(c.charge) }) : null,
-        enCours && c.secondes ? blocMinuteur(c) : null,
+        enCours && c.secondes ? blocMinuteur(c, chronoSeul, m.cote) : null,
         enCours && objectif(c) ? UI.el("p", { classe: "carte-objectif", texte: insecable(objectif(c)) }) : null,
         actions(c, j)
       ];
@@ -937,11 +950,18 @@
     // gardent leur taille, ils doivent rester lisibles à 2 m. La description
     // est le seul bloc à pouvoir se réduire (voir .carte-description en CSS) :
     // si elle déborde encore une fois resserrée, elle défile dans la carte.
+    // Deux crans depuis le 01/10 : la description a grandi (24 px de base), elle
+    // revient d'abord à son ancienne taille, puis à la plus petite.
     function resserrer() {
       [].forEach.call(racine.querySelectorAll(".carte"), function (a) {
-        if (a.className.indexOf("carte-serree") !== -1) return;
+        if (a.className.indexOf("carte-tres-serree") !== -1) return;
         var d = a.querySelector(".carte-description");
-        if (d && d.scrollHeight > d.clientHeight + 1) a.className += " carte-serree";
+        if (!d || d.scrollHeight <= d.clientHeight + 1) return;
+        if (a.className.indexOf("carte-serree") === -1) {
+          a.className += " carte-serree";
+          if (d.scrollHeight <= d.clientHeight + 1) return;
+        }
+        a.className += " carte-tres-serree";
       });
     }
 

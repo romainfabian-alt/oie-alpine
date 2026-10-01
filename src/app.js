@@ -25,7 +25,7 @@
   function accueil() {
     detruirePartieActive();
     veille.relacher();
-    global.EcranAccueil.afficher(racine, { plateaux: global.PLATEAUX, surChoix: joueurs, surRegles: regles });
+    global.EcranAccueil.afficher(racine, { plateaux: global.PLATEAUX, bib: bib, surChoix: joueurs, surRegles: regles });
   }
 
   // Règles consultées depuis l'accueil : pas de partie à enchaîner, seul le
